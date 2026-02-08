@@ -7,5 +7,38 @@
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-slate-100 text-slate-900 antialiased;
+  font-family: 'Inter', 'SF Pro Text', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  @apply tracking-tight;
+}
+
+@keyframes toast-slide-fade {
+  0% {
+    opacity: 0;
+    transform: translate3d(18px, -6px, 0);
+  }
+
+  12% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  82% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(20px, -2px, 0);
+  }
+}
+
+.animate-toast {
+  animation: toast-slide-fade 2s ease-in-out forwards;
 }
