@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import BackButton from '@/components/BackButton';
 import {
   getGuestServices,
   getRoomByToken,
+  normalizeRoomToken,
   type ServiceCategory,
   type ServiceItem,
 } from '@/lib/requests';
@@ -14,7 +16,7 @@ const ALL_CATEGORY = 'All';
 
 export default function GuestServicesPage() {
   const params = useParams<{ token: string }>();
-  const token = params?.token ?? '';
+  const token = normalizeRoomToken(params?.token ?? '');
 
   const [roomNumber, setRoomNumber] = useState<string | null>(null);
   const [services, setServices] = useState<ServiceItem[]>([]);
@@ -24,7 +26,7 @@ export default function GuestServicesPage() {
   useEffect(() => {
     setServices(getGuestServices());
     const room = getRoomByToken(token);
-    setRoomNumber(room?.roomNumber ?? null);
+    setRoomNumber((room?.roomNumber ?? token) || null);
   }, [token]);
 
   const categories = useMemo(() => {
@@ -48,13 +50,8 @@ export default function GuestServicesPage() {
     <section className="space-y-6">
       <header className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-4">
         <div className="flex items-center gap-3">
-          <Link
-            href={`/r/${token}`}
-            className="rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
-          >
-            Back
-          </Link>
-          <h1 className="text-3xl font-semibold text-slate-900">Services</h1>
+          <BackButton />
+          <h1 className="text-3xl font-semibold text-text">Services</h1>
         </div>
 
         <input
@@ -62,13 +59,13 @@ export default function GuestServicesPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search services"
-          className="w-full rounded-xl bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-1 ring-slate-200 transition focus:ring-2 focus:ring-indigo-300 sm:max-w-xs"
+          className="input-base sm:max-w-xs"
         />
       </header>
 
       {!isValidRoom ? (
-        <section className="rounded-2xl bg-white/75 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-          <p className="text-sm text-slate-600">Invalid room link.</p>
+        <section className="form-container shadow-warm">
+          <p className="text-sm text-muted">Invalid room link.</p>
         </section>
       ) : (
         <>
@@ -82,10 +79,10 @@ export default function GuestServicesPage() {
                     key={category}
                     type="button"
                     onClick={() => setActiveCategory(category)}
-                    className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                    className={`whitespace-nowrap rounded-none px-3 py-1.5 text-sm font-medium transition-colors ${
                       isActive
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'
+                        ? 'tabs-trigger tabs-trigger-active'
+                        : 'tabs-trigger'
                     }`}
                   >
                     {category}
@@ -96,8 +93,8 @@ export default function GuestServicesPage() {
           </div>
 
           {filteredServices.length === 0 ? (
-            <section className="rounded-2xl bg-white/75 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-              <p className="text-sm text-slate-600">No services match your filters.</p>
+            <section className="form-container shadow-warm">
+              <p className="text-sm text-muted">No services match your filters.</p>
             </section>
           ) : (
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -105,13 +102,13 @@ export default function GuestServicesPage() {
                 <li key={service.id}>
                   <Link
                     href={`/r/${token}/services/${service.id}`}
-                    className="block rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md transition hover:-translate-y-0.5 hover:shadow-md"
+                    className="block rounded-none border border-border bg-surface p-4 shadow-warm transition-colors hover:bg-surface-2"
                   >
-                    <p className="text-xs uppercase tracking-wide text-slate-400">{service.category}</p>
-                    <p className="mt-1 text-base font-semibold text-slate-900">{service.name}</p>
-                    <p className="mt-1 text-sm text-slate-600">{service.priceText}</p>
+                    <p className="text-xs uppercase tracking-wide text-muted">{service.category}</p>
+                    <p className="mt-1 text-base font-semibold text-text">{service.name}</p>
+                    <p className="mt-1 text-sm text-muted">{service.priceText}</p>
 
-                    <span className="mt-3 inline-flex rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 ring-1 ring-indigo-200">
+                    <span className="btn-secondary mt-3 px-3 py-1.5 text-sm">
                       {service.actionLabel}
                     </span>
                   </Link>

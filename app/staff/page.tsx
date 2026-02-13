@@ -2,11 +2,16 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import { Input, Select, Textarea } from '@/components/ui/Field';
+import Tabs from '@/components/ui/Tabs';
 import {
+  REQUEST_STATUS_STYLES,
   formatRelativeTime,
   formatRequestType,
   formatStatusLabel,
-  getNextStatus,
   getRequests,
   getRoomByToken,
   updateRequestDetails,
@@ -16,14 +21,16 @@ import {
   type RequestStatus,
 } from '@/lib/requests';
 
-type StaffTab = 'new' | 'in_progress' | 'done' | 'sla_risk';
+type StaffTab = 'all' | 'new' | 'accepted' | 'in_progress' | 'done' | 'sla_risk';
 
 const SLA_MINUTES = 30;
 const TEAM_OPTIONS = ['Front Desk', 'Housekeeping', 'Maintenance', 'Room Service'];
 const PERSON_OPTIONS = ['Alex', 'Sam', 'Jordan', 'Taylor'];
 
 const TAB_OPTIONS: Array<{ id: StaffTab; label: string }> = [
+  { id: 'all', label: 'All' },
   { id: 'new', label: 'New' },
+  { id: 'accepted', label: 'Accepted' },
   { id: 'in_progress', label: 'In progress' },
   { id: 'done', label: 'Done' },
   { id: 'sla_risk', label: 'SLA risk' },
@@ -49,7 +56,7 @@ function getRoomDisplay(request: GuestRequest): string {
 export default function StaffPage() {
   const [requests, setRequests] = useState<GuestRequest[]>([]);
   const [roomQuery, setRoomQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<StaffTab>('new');
+  const [activeTab, setActiveTab] = useState<StaffTab>('all');
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
   const [team, setTeam] = useState('');
@@ -75,12 +82,20 @@ export default function StaffPage() {
         return roomDisplay.includes(query) || request.roomToken.toLowerCase().includes(query);
       })
       .filter((request) => {
+        if (activeTab === 'all') {
+          return true;
+        }
+
         if (activeTab === 'new') {
           return request.status === 'new';
         }
 
+        if (activeTab === 'accepted') {
+          return request.status === 'accepted';
+        }
+
         if (activeTab === 'in_progress') {
-          return request.status === 'accepted' || request.status === 'in_progress';
+          return request.status === 'in_progress';
         }
 
         if (activeTab === 'done') {
@@ -111,6 +126,21 @@ export default function StaffPage() {
     setEtaMinutes(selectedRequest.etaMinutes ? String(selectedRequest.etaMinutes) : '');
     setStaffNote(selectedRequest.staffNote ?? '');
   }, [selectedRequest]);
+
+  useEffect(() => {
+    if (!selectedRequestId) {
+      return;
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setSelectedRequestId(null);
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [selectedRequestId]);
 
   function persistAndRefresh(updated: GuestRequest[]) {
     setRequests(updated);
@@ -143,202 +173,233 @@ export default function StaffPage() {
     persistAndRefresh(updated);
   }
 
+  function getShortNote(request: GuestRequest): string {
+    const text = request.note?.trim();
+    if (!text) {
+      return '';
+    }
+
+    if (text.length <= 56) {
+      return text;
+    }
+
+    return `${text.slice(0, 56).trimEnd()}...`;
+  }
+
   return (
     <section className="space-y-6">
       <header>
-        <h1 className="text-3xl font-semibold text-slate-900">Staff Dashboard</h1>
-        <p className="mt-2 text-sm text-slate-500">Operational control panel for active requests.</p>
-        <Link
-          href="/staff/rooms"
-          className="mt-3 inline-flex rounded-xl bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 ring-1 ring-indigo-200 transition hover:bg-indigo-100"
-        >
+        <h1 className="text-3xl font-semibold text-text">Staff Dashboard</h1>
+        <p className="mt-2 text-sm text-muted">Operational control panel for active requests.</p>
+        <Link href="/staff/rooms" className="btn-secondary mt-3 px-3 py-1.5 text-sm">
           Open Rooms page
         </Link>
       </header>
 
-      <div className="flex flex-wrap gap-2">
-        {TAB_OPTIONS.map((tab) => {
-          const isActive = activeTab === tab.id;
+      <Tabs value={activeTab} onChange={setActiveTab} items={TAB_OPTIONS} />
 
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                isActive
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+      <section className="space-y-3">
+        <Input
+          type="text"
+          value={roomQuery}
+          onChange={(event) => setRoomQuery(event.target.value)}
+          placeholder="Search by room number or token"
+        />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
-        <section className="space-y-3">
-          <input
-            type="text"
-            value={roomQuery}
-            onChange={(event) => setRoomQuery(event.target.value)}
-            placeholder="Search by room number or token"
-            className="w-full rounded-xl bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-1 ring-slate-200 transition focus:ring-2 focus:ring-indigo-300"
-          />
+        {filteredRequests.length === 0 ? (
+          <Card className="text-sm text-muted">No requests in this tab.</Card>
+        ) : (
+          <div className="overflow-hidden border border-border bg-surface shadow-soft">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-surface-2 text-left text-xs uppercase tracking-wide text-muted">
+                  <tr>
+                    <th className="px-3 py-2">Room</th>
+                    <th className="px-3 py-2">Type</th>
+                    <th className="px-3 py-2">Created</th>
+                    <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2">Note</th>
+                    <th className="px-3 py-2">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredRequests.map((request) => {
+                    const isSelected = selectedRequestId === request.id;
+                    const note = getShortNote(request);
+                    const statusTheme =
+                      activeTab === 'sla_risk'
+                        ? REQUEST_STATUS_STYLES.sla_risk
+                        : REQUEST_STATUS_STYLES[request.status];
 
-          {filteredRequests.length === 0 ? (
-            <div className="rounded-2xl bg-white/75 p-5 text-sm text-slate-600 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-              No requests in this tab.
+                    return (
+                      <tr
+                        key={request.id}
+                        onClick={() => setSelectedRequestId(request.id)}
+                        className={`cursor-pointer border-l-4 ${statusTheme.rowBg} ${statusTheme.rowBorder} ${
+                          isSelected ? 'ring-1 ring-inset ring-focus' : ''
+                        }`}
+                      >
+                        <td className="px-3 py-2 font-medium text-text">{getRoomDisplay(request)}</td>
+                        <td className="px-3 py-2 text-text">{formatRequestType(request.type)}</td>
+                        <td className="px-3 py-2 text-muted">{formatRelativeTime(request.createdAt)}</td>
+                        <td className="px-3 py-2">
+                          <Badge className={`${statusTheme.badgeBg} ${statusTheme.badgeText} ${statusTheme.badgeRing}`}>
+                            {activeTab === 'sla_risk' ? 'SLA risk' : formatStatusLabel(request.status)}
+                          </Badge>
+                        </td>
+                        <td className="max-w-[20rem] px-3 py-2 text-muted">
+                          <span className="block truncate">{note}</span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedRequestId(request.id);
+                            }}
+                            className="px-2.5 py-1 text-xs"
+                          >
+                            Open
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          ) : (
-            <ul className="space-y-2.5">
-              {filteredRequests.map((request) => {
-                const isSelected = selectedRequestId === request.id;
+          </div>
+        )}
+      </section>
 
-                return (
-                  <li key={request.id}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedRequestId(request.id)}
-                      className={`w-full rounded-2xl px-4 py-3 text-left shadow-sm ring-1 transition ${
-                        isSelected
-                          ? 'bg-indigo-50 ring-indigo-200'
-                          : 'bg-white/80 ring-white/70 hover:bg-white'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">{getRoomDisplay(request)}</p>
-                          <p className="mt-0.5 text-sm text-slate-700">{formatRequestType(request.type)}</p>
-                          <p className="mt-1 text-xs text-slate-500">{formatRelativeTime(request.createdAt)}</p>
-                        </div>
-                        <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-                          {formatStatusLabel(request.status)}
-                        </span>
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
+      {selectedRequest && (
+        <div
+          className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/35 p-0 sm:items-center sm:p-4"
+          onClick={() => setSelectedRequestId(null)}
+        >
+          <Card
+            role="dialog"
+            aria-modal="true"
+            className="h-full w-full overflow-y-auto p-4 sm:mx-auto sm:h-auto sm:max-h-[90vh] sm:max-w-2xl sm:p-5"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-sm font-semibold uppercase tracking-wide text-muted">Request details</p>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setSelectedRequestId(null)}
+                className="h-8 w-8 px-0 py-0 text-base"
+                aria-label="Close details"
+              >
+                ×
+              </Button>
+            </div>
 
-        <aside className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-          {!selectedRequest ? (
-            <p className="text-sm text-slate-500">Select a request to open operational controls.</p>
-          ) : (
             <div className="space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-lg font-semibold text-text">
+                    {formatRequestType(selectedRequest.type)} - Room {getRoomDisplay(selectedRequest)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted">Created {formatRelativeTime(selectedRequest.createdAt)}</p>
+                </div>
+                <Badge
+                  className={`${REQUEST_STATUS_STYLES[selectedRequest.status].badgeBg} ${REQUEST_STATUS_STYLES[selectedRequest.status].badgeText} ${REQUEST_STATUS_STYLES[selectedRequest.status].badgeRing}`}
+                >
+                  {formatStatusLabel(selectedRequest.status)}
+                </Badge>
+              </div>
+
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400">Request details</p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">{formatRequestType(selectedRequest.type)}</p>
-                <p className="text-xs text-slate-500">Room {getRoomDisplay(selectedRequest)}</p>
-                <p className="text-xs text-slate-500">Status: {formatStatusLabel(selectedRequest.status)}</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted">Guest note</p>
+                <Card className="mt-1 px-3 py-2 text-sm text-text">{selectedRequest.note?.trim() || '-'}</Card>
               </div>
 
               <div className="grid grid-cols-1 gap-3">
-                <label className="text-xs font-medium text-slate-600">
+                <label className="text-xs font-medium text-muted">
                   Team
-                  <select
-                    value={team}
-                    onChange={(event) => setTeam(event.target.value)}
-                    className="mt-1 w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-300"
-                  >
+                  <Select value={team} onChange={(event) => setTeam(event.target.value)} className="mt-1 py-2">
                     <option value="">Unassigned</option>
                     {TEAM_OPTIONS.map((value) => (
                       <option key={value} value={value}>
                         {value}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
 
-                <label className="text-xs font-medium text-slate-600">
+                <label className="text-xs font-medium text-muted">
                   Person
-                  <select
-                    value={person}
-                    onChange={(event) => setPerson(event.target.value)}
-                    className="mt-1 w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-300"
-                  >
+                  <Select value={person} onChange={(event) => setPerson(event.target.value)} className="mt-1 py-2">
                     <option value="">Unassigned</option>
                     {PERSON_OPTIONS.map((value) => (
                       <option key={value} value={value}>
                         {value}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
 
-                <label className="text-xs font-medium text-slate-600">
+                <label className="text-xs font-medium text-muted">
                   Priority
-                  <select
+                  <Select
                     value={priority}
                     onChange={(event) => setPriority(event.target.value as RequestPriority)}
-                    className="mt-1 w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-300"
+                    className="mt-1 py-2"
                   >
                     <option value="low">Low</option>
                     <option value="normal">Normal</option>
                     <option value="high">High</option>
-                  </select>
+                  </Select>
                 </label>
 
-                <label className="text-xs font-medium text-slate-600">
+                <label className="text-xs font-medium text-muted">
                   ETA (minutes)
-                  <input
+                  <Input
                     type="number"
                     min={1}
                     value={etaMinutes}
                     onChange={(event) => setEtaMinutes(event.target.value)}
-                    className="mt-1 w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-300"
+                    className="mt-1 py-2"
                   />
                 </label>
 
-                <label className="text-xs font-medium text-slate-600">
+                <label className="text-xs font-medium text-muted">
                   Internal staff note
-                  <textarea
+                  <Textarea
                     rows={3}
                     value={staffNote}
                     onChange={(event) => setStaffNote(event.target.value)}
-                    className="mt-1 w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-300"
+                    className="mt-1 py-2"
                   />
                 </label>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleStatusChange('accepted')}
-                  className="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100"
-                >
+                <Button type="button" variant="outline" onClick={() => handleStatusChange('accepted')} className="px-3 py-1.5 text-xs">
                   Accept
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => handleStatusChange('in_progress')}
-                  className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200 hover:bg-blue-100"
+                  className="px-3 py-1.5 text-xs"
                 >
                   Mark in progress
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleStatusChange('done')}
-                  className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100"
-                >
+                </Button>
+                <Button type="button" variant="outline" onClick={() => handleStatusChange('done')} className="px-3 py-1.5 text-xs">
                   Mark done
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveDetails}
-                  className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100"
-                >
+                </Button>
+                <Button type="button" onClick={handleSaveDetails} className="px-3 py-1.5 text-xs">
                   Save updates
-                </button>
+                </Button>
               </div>
             </div>
-          )}
-        </aside>
-      </div>
+          </Card>
+        </div>
+      )}
     </section>
   );
 }

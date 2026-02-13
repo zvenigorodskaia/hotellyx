@@ -159,20 +159,20 @@ export default function AdminServicesPage() {
   return (
     <section className="space-y-6">
       <header className="flex items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold text-slate-900">Services catalog</h1>
+        <h1 className="text-3xl font-semibold text-text">Services catalog</h1>
         <button
           type="button"
           onClick={openCreateModal}
-          className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-indigo-500/20 transition hover:brightness-110"
+          className="btn-primary"
         >
           + Add service
         </button>
       </header>
 
-      <section className="overflow-hidden rounded-2xl bg-white/80 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
+      <section className="overflow-hidden rounded-none border border-border bg-surface shadow-warm">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-surface-2 text-left text-xs uppercase tracking-wide text-muted">
               <tr>
                 <th className="px-3 py-3">Name</th>
                 <th className="px-3 py-3">Category</th>
@@ -181,20 +181,20 @@ export default function AdminServicesPage() {
                 <th className="px-3 py-3">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {sortedServices.map((service) => (
                 <tr key={service.id}>
-                  <td className="px-3 py-3 font-medium text-slate-900">{service.name}</td>
-                  <td className="px-3 py-3 text-slate-700">{service.category}</td>
-                  <td className="px-3 py-3 text-slate-700">{service.priceText}</td>
+                  <td className="px-3 py-3 font-medium text-text">{service.name}</td>
+                  <td className="px-3 py-3 text-muted">{service.category}</td>
+                  <td className="px-3 py-3 text-muted">{service.priceText}</td>
                   <td className="px-3 py-3">
                     <button
                       type="button"
                       onClick={() => handleActiveToggle(service.id)}
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition ${
+                      className={`rounded-none px-2.5 py-1 text-xs font-medium ring-1 transition ${
                         service.active
-                          ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                          : 'bg-slate-100 text-slate-600 ring-slate-200'
+                          ? 'bg-surface-2 text-text ring-border'
+                          : 'bg-[color:rgba(219,206,197,0.55)] text-muted ring-border'
                       }`}
                     >
                       {service.active ? 'Active' : 'Disabled'}
@@ -204,7 +204,7 @@ export default function AdminServicesPage() {
                     <button
                       type="button"
                       onClick={() => openEditModal(service)}
-                      className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
+                      className="btn-secondary px-3 py-1.5 text-xs"
                     >
                       Edit
                     </button>
@@ -218,36 +218,36 @@ export default function AdminServicesPage() {
 
       {showModal && (
         <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/30 px-4 backdrop-blur-sm"
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 px-4"
           onClick={closeModal}
         >
           <div
             role="dialog"
             aria-modal="true"
-            className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-slate-200"
+            className="form-container w-full max-w-lg p-5 shadow-warm"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-semibold text-text">
               {editingServiceId ? 'Edit service' : 'Add service'}
             </h2>
 
             <div className="mt-4 grid grid-cols-1 gap-3">
-              <label className="text-xs font-medium text-slate-600">
+              <label className="text-xs font-medium text-muted">
                 Name
                 <input
                   type="text"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  className="mt-1 w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-300"
+                  className="input-base mt-1 py-2"
                 />
               </label>
 
-              <label className="text-xs font-medium text-slate-600">
+              <label className="text-xs font-medium text-muted">
                 Category
                 <select
                   value={category}
                   onChange={(event) => setCategory(event.target.value as ServiceCategory)}
-                  className="mt-1 w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-300"
+                  className="input-base mt-1 py-2"
                 >
                   {CATEGORY_OPTIONS.map((option) => (
                     <option key={option} value={option}>
@@ -257,31 +257,31 @@ export default function AdminServicesPage() {
                 </select>
               </label>
 
-              <label className="text-xs font-medium text-slate-600">
+              <label className="text-xs font-medium text-muted">
                 Price
                 <input
                   type="text"
                   value={priceText}
                   onChange={(event) => setPriceText(event.target.value)}
                   placeholder="€60"
-                  className="mt-1 w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-300"
+                  className="input-base mt-1 py-2"
                 />
               </label>
 
-              <label className="text-xs font-medium text-slate-600">
+              <label className="text-xs font-medium text-muted">
                 Availability (comma-separated time slots)
                 <input
                   type="text"
                   value={availabilityInput}
                   onChange={(event) => setAvailabilityInput(event.target.value)}
                   placeholder="2026-02-07T13:00:00.000Z, 2026-02-07T15:00:00.000Z"
-                  className="mt-1 w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-300"
+                  className="input-base mt-1 py-2"
                 />
               </label>
 
               <div>
-                <p className="text-xs font-medium text-slate-600">Upsell rules</p>
-                <label className="mt-2 flex items-center gap-2 text-sm text-slate-700">
+                <p className="text-xs font-medium text-muted">Upsell rules</p>
+                <label className="mt-2 flex items-center gap-2 text-sm text-muted">
                   <input
                     type="checkbox"
                     checked={showPreArrival}
@@ -289,7 +289,7 @@ export default function AdminServicesPage() {
                   />
                   Show pre-arrival
                 </label>
-                <label className="mt-1 flex items-center gap-2 text-sm text-slate-700">
+                <label className="mt-1 flex items-center gap-2 text-sm text-muted">
                   <input
                     type="checkbox"
                     checked={showWhenLateCheckoutNotBought}
@@ -304,14 +304,14 @@ export default function AdminServicesPage() {
               <button
                 type="button"
                 onClick={closeModal}
-                className="rounded-xl px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+                className="btn-secondary px-3.5 py-2 text-sm"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSave}
-                className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-3.5 py-2 text-sm font-medium text-white shadow-md shadow-indigo-500/20 transition hover:brightness-110"
+                className="btn-primary px-3.5 py-2 text-sm"
               >
                 Save
               </button>

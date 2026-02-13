@@ -33,7 +33,7 @@ export type RoomRecord = {
   roomStatus: RoomStatus;
 };
 
-export type RoomStatus = 'dnd' | 'please_clean' | 'maintenance_needed';
+export type RoomStatus = 'normal' | 'dnd' | 'please_clean' | 'maintenance_needed';
 
 export type ServiceCategory =
   | 'Housekeeping'
@@ -79,7 +79,7 @@ type CreateRequestInput = {
 const STATUS_FLOW: RequestStatus[] = ['new', 'accepted', 'in_progress', 'done'];
 const REQUEST_STATUSES: RequestStatus[] = ['new', 'accepted', 'in_progress', 'done', 'cancelled'];
 const REQUEST_PRIORITIES: RequestPriority[] = ['low', 'normal', 'high'];
-const ROOM_STATUSES: RoomStatus[] = ['dnd', 'please_clean', 'maintenance_needed'];
+const ROOM_STATUSES: RoomStatus[] = ['normal', 'dnd', 'please_clean', 'maintenance_needed'];
 const SERVICE_CATEGORIES: ServiceCategory[] = [
   'Housekeeping',
   'Food & Drinks',
@@ -284,7 +284,7 @@ function parseRooms(raw: string | null): RoomRecord[] {
             : typeof item.updatedAt === 'string'
               ? item.updatedAt
               : new Date().toISOString();
-        const roomStatus = isRoomStatus(item.roomStatus) ? item.roomStatus : 'dnd';
+        const roomStatus = isRoomStatus(item.roomStatus) ? item.roomStatus : 'normal';
 
         if (!roomNumber || !token) {
           return null;
@@ -425,6 +425,28 @@ export function createRoomToken(length = 14): string {
   return token;
 }
 
+export function normalizeRoomToken(rawToken: string | undefined | null): string {
+  const trimmed = (rawToken ?? '').trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  if (trimmed.toLowerCase().startsWith('demo-')) {
+    return trimmed.slice(5).trim();
+  }
+
+  return trimmed;
+}
+
+export function isValidRoomToken(token: string): boolean {
+  const normalized = normalizeRoomToken(token);
+  if (!normalized) {
+    return false;
+  }
+
+  return /^[A-Za-z0-9-]+$/.test(normalized);
+}
+
 export function getRequests(): GuestRequest[] {
   if (!canUseStorage()) {
     return [];
@@ -449,10 +471,11 @@ export function createRequest(
   const options = typeof input === 'string' ? { note: input } : input;
   const note = options?.note?.trim();
   const roomNumber = options?.roomNumber?.trim();
+  const normalizedRoomToken = normalizeRoomToken(roomToken);
 
   const next: GuestRequest = {
     id: createRequestId(),
-    roomToken,
+    roomToken: normalizedRoomToken,
     type,
     status: 'new',
     createdAt: new Date().toISOString(),
@@ -469,7 +492,22 @@ export function createRequest(
 }
 
 export function getRoomRequests(roomToken: string): GuestRequest[] {
-  return getRequests().filter((request) => request.roomToken === roomToken);
+  const normalized = normalizeRoomToken(roomToken);
+  const room = getRoomByToken(normalized);
+  const effectiveToken = room?.token ?? normalized;
+  const knownRoomNumber = room?.roomNumber;
+
+  return getRequests().filter((request) => {
+    if (request.roomToken === effectiveToken) {
+      return true;
+    }
+
+    if (knownRoomNumber && request.roomNumber === knownRoomNumber) {
+      return true;
+    }
+
+    return false;
+  });
 }
 
 export function getNextStatus(status: RequestStatus): RequestStatus {
@@ -665,7 +703,7 @@ export function addRoom(roomNumber: string): RoomRecord {
     roomNumber: normalizedRoomNumber,
     token: createRoomToken(),
     createdAt: new Date().toISOString(),
-    roomStatus: 'dnd',
+    roomStatus: 'normal',
   };
 
   const existing = getRooms();
@@ -676,7 +714,8 @@ export function addRoom(roomNumber: string): RoomRecord {
 }
 
 export function getRoomByToken(token: string): RoomRecord | undefined {
-  return getRooms().find((room) => room.token === token);
+  const normalized = normalizeRoomToken(token);
+  return getRooms().find((room) => room.token === normalized || room.roomNumber === normalized);
 }
 
 export function regenerateRoomToken(currentToken: string): RoomRecord | null {
@@ -704,12 +743,15 @@ export function regenerateRoomToken(currentToken: string): RoomRecord | null {
 }
 
 export function getRoomStatus(token: string): RoomStatus {
-  return getRoomByToken(token)?.roomStatus ?? 'dnd';
+  return getRoomByToken(token)?.roomStatus ?? 'normal';
 }
 
 export function setRoomStatus(token: string, roomStatus: RoomStatus): RoomRecord[] {
   const existing = getRooms();
-  const index = existing.findIndex((room) => room.token === token);
+  const normalized = normalizeRoomToken(token);
+  const index = existing.findIndex(
+    (room) => room.token === normalized || room.roomNumber === normalized
+  );
   if (index < 0) {
     return existing;
   }
@@ -721,6 +763,10 @@ export function setRoomStatus(token: string, roomStatus: RoomStatus): RoomRecord
 }
 
 export function formatRoomStatusLabel(status: RoomStatus): string {
+  if (status === 'normal') {
+    return 'Normal';
+  }
+
   if (status === 'dnd') {
     return 'Do not disturb';
   }
@@ -730,6 +776,69 @@ export function formatRoomStatusLabel(status: RoomStatus): string {
   }
 
   return 'Maintenance needed';
+}
+
+export const ROOM_STATUS_STYLES: Record<
+  RoomStatus,
+  {
+    bgClass: string;
+    textClass: string;
+    borderClass: string;
+    ringClass: string;
+    container: string;
+    select: string;
+    badge: string;
+    cardActive: string;
+  }
+> = {
+  normal: {
+    bgClass: 'bg-surface',
+    textClass: 'text-text',
+    borderClass: 'border-border',
+    ringClass: 'focus:ring-2 focus:ring-[color:rgba(122,0,0,0.18)]',
+    container: 'bg-surface text-text ring-border',
+    select: 'border-border bg-surface text-text',
+    badge: 'bg-surface text-text ring-border',
+    cardActive: 'bg-surface ring-border',
+  },
+  dnd: {
+    bgClass: 'bg-[#F4D6D6]',
+    textClass: 'text-[#7A0000]',
+    borderClass: 'border-[#B9A699]',
+    ringClass: 'focus:ring-2 focus:ring-[color:rgba(122,0,0,0.18)]',
+    container: 'bg-[#F4D6D6] text-[#7A0000] ring-[#B9A699]',
+    select: 'border-[#B9A699] bg-[#F4D6D6] text-[#7A0000]',
+    badge: 'bg-[#F4D6D6] text-[#7A0000] ring-[#B9A699]',
+    cardActive: 'bg-[#F4D6D6] ring-[#B9A699]',
+  },
+  please_clean: {
+    bgClass: 'bg-[#D6E4F4]',
+    textClass: 'text-[#1E3A5F]',
+    borderClass: 'border-[#B9A699]',
+    ringClass: 'focus:ring-2 focus:ring-[color:rgba(122,0,0,0.18)]',
+    container: 'bg-[#D6E4F4] text-[#1E3A5F] ring-[#B9A699]',
+    select: 'border-[#B9A699] bg-[#D6E4F4] text-[#1E3A5F]',
+    badge: 'bg-[#D6E4F4] text-[#1E3A5F] ring-[#B9A699]',
+    cardActive: 'bg-[#D6E4F4] ring-[#B9A699]',
+  },
+  maintenance_needed: {
+    bgClass: 'bg-[#E6C7B3]',
+    textClass: 'text-[#7A4A2F]',
+    borderClass: 'border-[#B9A699]',
+    ringClass: 'focus:ring-2 focus:ring-[color:rgba(122,0,0,0.18)]',
+    container: 'bg-[#E6C7B3] text-[#7A4A2F] ring-[#B9A699]',
+    select: 'border-[#B9A699] bg-[#E6C7B3] text-[#7A4A2F]',
+    badge: 'bg-[#E6C7B3] text-[#7A4A2F] ring-[#B9A699]',
+    cardActive: 'bg-[#E6C7B3] ring-[#B9A699]',
+  },
+};
+
+export function getRoomStatusStyle(status: RoomStatus) {
+  return ROOM_STATUS_STYLES[status];
+}
+
+export function getRoomStatusTheme(status: RoomStatus) {
+  return ROOM_STATUS_STYLES[status];
 }
 
 export function getAllRoomTokens(): string[] {
@@ -787,23 +896,75 @@ export function formatStatusLabel(status: RequestStatus): string {
 }
 
 export function getStatusBadgeClassName(status: RequestStatus): string {
-  if (status === 'new') {
-    return 'bg-indigo-50 text-indigo-700 ring-indigo-600/20';
-  }
+  const styles = REQUEST_STATUS_STYLES[status];
+  return `${styles.badgeBg} ${styles.badgeText} ${styles.badgeRing}`;
+}
 
-  if (status === 'accepted') {
-    return 'bg-amber-50 text-amber-700 ring-amber-600/20';
-  }
+export type RequestVisualStatus = RequestStatus | 'sla_risk';
 
-  if (status === 'in_progress') {
-    return 'bg-blue-50 text-blue-700 ring-blue-600/20';
+export const REQUEST_STATUS_STYLES: Record<
+  RequestVisualStatus,
+  {
+    rowBg: string;
+    rowBorder: string;
+    badgeBg: string;
+    badgeText: string;
+    badgeRing: string;
+    accentText: string;
   }
+> = {
+  new: {
+    rowBg: 'bg-[color:var(--status-new)] hover:bg-[color:rgba(180,205,220,0.45)]',
+    rowBorder: 'border-[#1E3A5F]',
+    badgeBg: 'bg-[color:var(--status-new)]',
+    badgeText: 'text-[#1E3A5F]',
+    badgeRing: 'ring-[#B9A699]',
+    accentText: 'text-[#1E3A5F]',
+  },
+  accepted: {
+    rowBg: 'bg-[color:var(--status-accepted)] hover:bg-[color:rgba(205,170,120,0.45)]',
+    rowBorder: 'border-[#7A4A2F]',
+    badgeBg: 'bg-[color:var(--status-accepted)]',
+    badgeText: 'text-[#7A4A2F]',
+    badgeRing: 'ring-[#B9A699]',
+    accentText: 'text-[#7A4A2F]',
+  },
+  in_progress: {
+    rowBg: 'bg-[#DCCFC5] hover:bg-[#d0c0b5]',
+    rowBorder: 'border-[#574944]',
+    badgeBg: 'bg-[#DCCFC5]',
+    badgeText: 'text-[#574944]',
+    badgeRing: 'ring-[#B9A699]',
+    accentText: 'text-[#574944]',
+  },
+  done: {
+    rowBg: 'bg-[color:var(--status-done)] hover:bg-[color:rgba(160,190,150,0.45)]',
+    rowBorder: 'border-[#1F4D2E]',
+    badgeBg: 'bg-[color:var(--status-done)]',
+    badgeText: 'text-[#1F4D2E]',
+    badgeRing: 'ring-[#B9A699]',
+    accentText: 'text-[#1F4D2E]',
+  },
+  cancelled: {
+    rowBg: 'bg-[color:var(--status-cancelled)] hover:bg-[color:rgba(160,60,50,0.22)]',
+    rowBorder: 'border-[#7A0000]',
+    badgeBg: 'bg-[color:var(--status-cancelled)]',
+    badgeText: 'text-[#7A0000]',
+    badgeRing: 'ring-[#B9A699]',
+    accentText: 'text-[#7A0000]',
+  },
+  sla_risk: {
+    rowBg: 'bg-[#F3E3C7] hover:bg-[#ead6b7]',
+    rowBorder: 'border-[#5A3A00]',
+    badgeBg: 'bg-[#F3E3C7]',
+    badgeText: 'text-[#5A3A00]',
+    badgeRing: 'ring-[#B9A699]',
+    accentText: 'text-[#5A3A00]',
+  },
+};
 
-  if (status === 'cancelled') {
-    return 'bg-slate-100 text-slate-600 ring-slate-300/40';
-  }
-
-  return 'bg-emerald-50 text-emerald-700 ring-emerald-600/20';
+export function getRequestStatusTheme(status: RequestVisualStatus) {
+  return REQUEST_STATUS_STYLES[status];
 }
 
 export function getRequestById(requestId: string): GuestRequest | undefined {

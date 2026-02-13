@@ -1,9 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { ChevronDown } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useParams } from 'next/navigation';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import { Textarea } from '@/components/ui/Field';
 import {
   REQUESTS_STORAGE_KEY,
   ROOMS_STORAGE_KEY,
@@ -11,11 +15,16 @@ import {
   formatRelativeTime,
   formatRequestType,
   formatStatusLabel,
+  getRequestStatusTheme,
+  getRoomStatusTheme,
   getRoomByToken,
   getRoomRequests,
-  getStatusBadgeClassName,
+  isValidRoomToken,
+  normalizeRoomToken,
+  setRoomStatus,
   type GuestRequest,
   type RequestPriority,
+  type RoomStatus,
 } from '@/lib/requests';
 
 type QuickRequestItem = {
@@ -38,7 +47,13 @@ type PendingRequest = {
 };
 
 type ScheduleOption = 'now' | '1h' | '2h';
-type GuestRoomStatus = 'do_not_disturb' | 'please_clean' | 'maintenance_needed' | null;
+
+const ROOM_STATUS_OPTIONS: Array<{ value: RoomStatus; label: string }> = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'dnd', label: 'Do not disturb' },
+  { value: 'please_clean', label: 'Please clean' },
+  { value: 'maintenance_needed', label: 'Maintenance needed' },
+];
 
 const QUICK_REQUESTS: QuickRequestItem[] = [
   {
@@ -47,16 +62,12 @@ const QUICK_REQUESTS: QuickRequestItem[] = [
     caption: 'Fresh towels delivered to your room',
     priority: 'normal',
     icon: (
-      <svg
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        className="h-8 w-8 transition-transform duration-200 group-hover:scale-105"
-      >
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-10 w-10">
         <path
           d="M4 6.5h12a2 2 0 0 1 2 2V12H6a2 2 0 0 1-2-2V6.5ZM6 12h12a2 2 0 0 1 2 2v3.5H8a2 2 0 0 1-2-2V12ZM4 17.5h12a2 2 0 0 1 2 2V21H6a2 2 0 0 1-2-2v-1.5Z"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2.25"
+          strokeWidth="2.1"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -69,16 +80,12 @@ const QUICK_REQUESTS: QuickRequestItem[] = [
     caption: 'Request housekeeping for your room',
     priority: 'normal',
     icon: (
-      <svg
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        className="h-8 w-8 transition-transform duration-200 group-hover:scale-105"
-      >
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-10 w-10">
         <path
           d="M6 20h4M8 20l7-12M13.5 5.5l4.5 4.5M17 3v2M17 10v2M14 7h2M20 7h2"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2.25"
+          strokeWidth="2.1"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -91,16 +98,12 @@ const QUICK_REQUESTS: QuickRequestItem[] = [
     caption: 'Ask for bottled water refill',
     priority: 'low',
     icon: (
-      <svg
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        className="h-8 w-8 transition-transform duration-200 group-hover:scale-105"
-      >
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-10 w-10">
         <path
           d="M12 3.5c3.4 3.9 5.8 6.8 5.8 10a5.8 5.8 0 1 1-11.6 0c0-3.2 2.4-6.1 5.8-10ZM9.5 14.3a2.5 2.5 0 0 0 2.5 2.4"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2.25"
+          strokeWidth="2.1"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -113,16 +116,12 @@ const QUICK_REQUESTS: QuickRequestItem[] = [
     caption: 'Tell us what needs attention',
     priority: 'high',
     icon: (
-      <svg
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        className="h-8 w-8 transition-transform duration-200 group-hover:scale-105"
-      >
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-10 w-10">
         <path
           d="M12 9.2v5.2M12 17.6h.01M10.3 4.8 4 16.3a2 2 0 0 0 1.8 2.9h12.4a2 2 0 0 0 1.8-2.9L13.7 4.8a2 2 0 0 0-3.4 0Z"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2.25"
+          strokeWidth="2.1"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -168,62 +167,28 @@ function getScheduledFor(option: ScheduleOption): string | undefined {
   return date.toISOString();
 }
 
-function normalizeGuestRoomStatus(status: string | undefined): GuestRoomStatus {
-  if (!status) {
-    return null;
+function normalizeRoomStatus(status: string | undefined): RoomStatus {
+  if (status === 'dnd' || status === 'please_clean' || status === 'maintenance_needed' || status === 'normal') {
+    return status;
   }
 
-  if (status === 'dnd' || status === 'do_not_disturb') {
-    return 'do_not_disturb';
-  }
-
-  if (status === 'please_clean') {
-    return 'please_clean';
-  }
-
-  if (status === 'maintenance_needed') {
-    return 'maintenance_needed';
-  }
-
-  return null;
-}
-
-function getRoomStatusBadge(status: GuestRoomStatus): { label: string; className: string } {
   if (status === 'do_not_disturb') {
-    return {
-      label: 'Do not disturb',
-      className: 'bg-violet-50 text-violet-700 ring-violet-200',
-    };
+    return 'dnd';
   }
 
-  if (status === 'please_clean') {
-    return {
-      label: 'Please clean',
-      className: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    };
-  }
-
-  if (status === 'maintenance_needed') {
-    return {
-      label: 'Maintenance needed',
-      className: 'bg-amber-50 text-amber-700 ring-amber-200',
-    };
-  }
-
-  return {
-    label: 'No status',
-    className: 'bg-slate-100 text-slate-600 ring-slate-200',
-  };
+  return 'normal';
 }
 
 export default function ReservationTokenPage() {
   const router = useRouter();
   const params = useParams<{ token: string }>();
-  const token = params?.token ?? '';
+  const token = normalizeRoomToken(params?.token ?? '');
+  const tokenIsValid = isValidRoomToken(token);
 
   const [requests, setRequests] = useState<GuestRequest[]>([]);
   const [roomNumber, setRoomNumber] = useState<string | null>(null);
-  const [roomStatus, setRoomStatus] = useState<GuestRoomStatus>(null);
+  const [roomStatus, setCurrentRoomStatus] = useState<RoomStatus>('normal');
+  const [resolvedRoomToken, setResolvedRoomToken] = useState('');
   const [pendingRequest, setPendingRequest] = useState<PendingRequest | null>(null);
   const [note, setNote] = useState('');
   const [scheduleOption, setScheduleOption] = useState<ScheduleOption>('now');
@@ -232,10 +197,20 @@ export default function ReservationTokenPage() {
 
   useEffect(() => {
     function refreshRoomData() {
-      setRequests(getRoomRequests(token));
+      if (!tokenIsValid) {
+        setRequests([]);
+        setRoomNumber(null);
+        setResolvedRoomToken('');
+        setCurrentRoomStatus('normal');
+        return;
+      }
+
       const room = getRoomByToken(token);
-      setRoomNumber(room?.roomNumber ?? null);
-      setRoomStatus(normalizeGuestRoomStatus(room?.roomStatus));
+      const effectiveToken = room?.token ?? token;
+      setResolvedRoomToken(effectiveToken);
+      setRequests(getRoomRequests(effectiveToken));
+      setRoomNumber(room?.roomNumber ?? token);
+      setCurrentRoomStatus(normalizeRoomStatus(room?.roomStatus ?? 'normal'));
     }
 
     function handleStorage(event: StorageEvent) {
@@ -256,24 +231,19 @@ export default function ReservationTokenPage() {
       window.removeEventListener('focus', refreshRoomData);
       window.removeEventListener('storage', handleStorage);
     };
-  }, [token]);
+  }, [token, tokenIsValid]);
 
   useEffect(() => {
     if (!showSentToast) {
       return;
     }
 
-    const timeout = window.setTimeout(() => {
-      setShowSentToast(false);
-    }, 2000);
-
+    const timeout = window.setTimeout(() => setShowSentToast(false), 2000);
     return () => window.clearTimeout(timeout);
   }, [showSentToast]);
 
-  const sortedRequests = useMemo(() => {
-    return [...requests].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-  }, [requests]);
-  const roomStatusBadge = useMemo(() => getRoomStatusBadge(roomStatus), [roomStatus]);
+  const sortedRequests = useMemo(() => [...requests].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)), [requests]);
+  const roomStatusTheme = useMemo(() => getRoomStatusTheme(roomStatus), [roomStatus]);
 
   function openRequestPanel(type: string, title: string, priority: RequestPriority) {
     setPendingRequest({ type, title, priority });
@@ -288,30 +258,35 @@ export default function ReservationTokenPage() {
   }
 
   function handleSendRequest() {
-    if (!pendingRequest || !token) {
+    if (!pendingRequest || !resolvedRoomToken || !roomNumber) {
       return;
     }
 
-    createRequest(token, pendingRequest.type, {
+    createRequest(resolvedRoomToken, pendingRequest.type, {
       note,
       scheduledFor: getScheduledFor(scheduleOption),
       priority: pendingRequest.priority,
-      roomNumber: roomNumber ?? undefined,
+      roomNumber,
     });
 
-    setRequests(getRoomRequests(token));
+    setRequests(getRoomRequests(resolvedRoomToken));
     closeRequestPanel();
     setShowSentToast(true);
   }
 
-  const isValidRoomLink = Boolean(roomNumber);
+  function handleRoomStatusChange(nextStatus: RoomStatus) {
+    setCurrentRoomStatus(nextStatus);
+    setRoomStatus(resolvedRoomToken || token, nextStatus);
+  }
+
+  const isValidRoomLink = Boolean(roomNumber && tokenIsValid);
 
   return (
     <section className="space-y-8">
       {showSentToast && (
-        <div className="animate-toast fixed right-4 top-4 z-50 w-[min(92vw,20rem)] rounded-2xl bg-white/95 px-4 py-3 text-sm text-slate-700 shadow-2xl ring-1 ring-slate-200 backdrop-blur">
+        <Card className="animate-toast fixed right-4 top-4 z-50 w-[min(92vw,20rem)] p-3 shadow-soft">
           <div className="flex items-center gap-3">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
+            <span className="inline-flex h-8 w-8 items-center justify-center border border-border bg-surface-2 text-brand">
               <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
                 <path
                   d="m5 12 4.2 4.2L19 6.5"
@@ -324,135 +299,151 @@ export default function ReservationTokenPage() {
               </svg>
             </span>
             <div>
-              <p className="font-medium text-slate-900">Request sent</p>
-              <p className="text-xs text-slate-500">The staff team has been notified.</p>
+              <p className="font-medium text-text">Request sent</p>
+              <p className="text-xs text-muted">The staff team has been notified.</p>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold text-slate-900">
-            {isValidRoomLink ? `Hi, Room ${roomNumber}` : 'Invalid room link'}
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">Request services without calling reception</p>
-          {isValidRoomLink && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Link
-                href={`/r/${token}/services`}
-                className="inline-flex rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 ring-1 ring-indigo-200 transition hover:bg-indigo-100"
-              >
-                Services
-              </Link>
-              <Link
-                href={`/r/${token}/room-status`}
-                className="inline-flex rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
-              >
-                Room status
-              </Link>
-            </div>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <span
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ${roomStatusBadge.className}`}
+      <section>
+        <div className="relative h-[340px] overflow-hidden border border-border">
+          <img
+            src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1800&q=80"
+            alt="Hotel room service lifestyle"
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/30" />
+          <div
+            className={`absolute inset-x-4 bottom-4 border p-4 backdrop-blur-sm ${roomStatusTheme.bgClass} ${roomStatusTheme.textClass} ${roomStatusTheme.borderClass}`}
           >
-            {roomStatusBadge.label}
-          </span>
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
-            Connected
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h1 className="text-3xl font-semibold text-text">
+                  {isValidRoomLink ? `Hi, Room ${roomNumber}` : 'Invalid room link'}
+                </h1>
+                <p className="mt-1 text-sm text-muted">Request services without calling reception</p>
+              </div>
+
+              {isValidRoomLink && (
+                <div className="sm:min-w-[240px]">
+                  <label className="flex flex-col gap-1 text-xs font-medium">
+                    <span className="text-muted">Room status</span>
+                    <span className="relative inline-flex items-center">
+                      <select
+                        value={roomStatus}
+                        onChange={(event) => handleRoomStatusChange(event.target.value as RoomStatus)}
+                        className={`h-11 w-full appearance-none border px-4 py-3 pr-10 text-sm font-medium outline-none transition-colors hover:border-brand ${roomStatusTheme.bgClass} ${roomStatusTheme.textClass} ${roomStatusTheme.borderClass} ${roomStatusTheme.ringClass}`}
+                      >
+                        {ROOM_STATUS_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 h-4 w-4 text-text" />
+                    </span>
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </header>
+      </section>
 
       {!isValidRoomLink && (
-        <section className="rounded-2xl bg-white/75 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-          <p className="text-sm text-slate-600">
-            Invalid room link. Please scan the QR code again or contact reception.
+        <Card className="space-y-3">
+          <h2 className="text-xl font-semibold text-text">Invalid room link</h2>
+          <p className="text-sm text-muted">
+            This room link is unavailable or malformed. Please scan the QR code again or contact reception.
           </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" onClick={() => window.location.reload()} className="px-3.5 py-2 text-sm">
+              Rescan QR code
+            </Button>
+            <Link href="/pages" className="btn-secondary px-3.5 py-2 text-sm">
+              Go to pages
+            </Link>
+          </div>
+        </Card>
+      )}
+
+      {isValidRoomLink && (
+        <section>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-sm font-medium uppercase tracking-wide text-muted">Quick requests</h2>
+            <Link href={`/r/${token}/services`} className="btn-secondary px-2.5 py-1 text-xs">
+              All services
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {QUICK_REQUESTS.map((item) => (
+              <button
+                key={item.type}
+                type="button"
+                onClick={() => router.push(`/r/${token}/request?type=${encodeURIComponent(item.title)}`)}
+                className="border border-border bg-surface p-5 text-left transition-colors hover:bg-surface-2"
+              >
+                <div className="text-muted">{item.icon}</div>
+                <p className="mt-4 text-base font-semibold text-text">{item.title}</p>
+                <p className="mt-1 text-sm text-muted">{item.caption}</p>
+              </button>
+            ))}
+          </div>
         </section>
       )}
 
-      {isValidRoomLink && <section>
-        <h2 className="text-sm font-medium uppercase tracking-wide text-slate-500">Quick requests</h2>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {QUICK_REQUESTS.map((item) => (
-            <button
-              key={item.type}
-              type="button"
-              onClick={() =>
-                router.push(`/r/${token}/request?type=${encodeURIComponent(item.title)}`)
-              }
-              className="group rounded-2xl bg-white/70 p-4 text-left shadow-sm ring-1 ring-white/60 backdrop-blur-md transition duration-200 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-xl hover:ring-indigo-200"
-            >
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 transition duration-200 group-hover:bg-indigo-100">
-                {item.icon}
-              </div>
-              <p className="mt-3 text-sm font-semibold text-slate-900">{item.title}</p>
-              <p className="mt-1 text-xs text-slate-500">{item.caption}</p>
-            </button>
-          ))}
-        </div>
-      </section>}
-
-      {isValidRoomLink && <section>
-        <h2 className="text-sm font-medium uppercase tracking-wide text-slate-500">Hotel services</h2>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {HOTEL_SERVICES.map((service) => (
-            <button
-              key={service.name}
-              type="button"
-              onClick={() =>
-                openRequestPanel(`Service: ${service.name}`, `Service: ${service.name}`, 'normal')
-              }
-              className="rounded-2xl bg-white/70 p-4 text-left shadow-sm ring-1 ring-white/60 backdrop-blur-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:ring-indigo-200"
-            >
-              <p className="text-sm font-semibold text-slate-900">{service.name}</p>
-              <p className="mt-1 text-xs text-slate-500">{service.caption}</p>
-            </button>
-          ))}
-        </div>
-      </section>}
+      {isValidRoomLink && (
+        <section>
+          <h2 className="text-sm font-medium uppercase tracking-wide text-muted">Hotel services</h2>
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {HOTEL_SERVICES.map((service) => (
+              <button
+                key={service.name}
+                type="button"
+                onClick={() => openRequestPanel(`Service: ${service.name}`, `Service: ${service.name}`, 'normal')}
+                className="border border-border bg-surface-2 px-4 py-3 text-left transition-colors hover:bg-surface"
+              >
+                <p className="text-sm font-semibold text-text">{service.name}</p>
+                <p className="mt-0.5 text-xs text-muted">{service.caption}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {pendingRequest && (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/30 px-4 backdrop-blur-sm"
-          onClick={closeRequestPanel}
-        >
-          <div
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 px-4" onClick={closeRequestPanel}>
+          <Card
+            className="w-full max-w-md p-5"
             role="dialog"
             aria-modal="true"
-            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-slate-200"
             onClick={(event) => event.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold text-slate-900">{pendingRequest.title}</h3>
-            <p className="mt-1 text-sm text-slate-500">Add details and choose schedule (optional).</p>
+            <h3 className="text-lg font-semibold text-text">{pendingRequest.title}</h3>
+            <p className="mt-1 text-sm text-muted">Add details and choose schedule (optional).</p>
 
-            <label htmlFor="request-note" className="mt-4 block text-xs font-medium text-slate-600">
+            <label htmlFor="request-note" className="mt-4 block text-xs font-medium text-muted">
               Note
             </label>
-            <textarea
+            <Textarea
               id="request-note"
               value={note}
               onChange={(event) => setNote(event.target.value)}
               rows={3}
               placeholder="Any specific detail for the team"
-              className="mt-2 w-full rounded-xl bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none ring-1 ring-slate-200 transition focus:ring-2 focus:ring-indigo-300"
+              className="mt-2"
             />
 
-            <p className="mt-4 text-xs font-medium text-slate-600">Schedule</p>
-            <div className="mt-2 inline-flex rounded-xl bg-slate-100 p-1">
+            <p className="mt-4 text-xs font-medium text-muted">Schedule</p>
+            <div className="mt-2 inline-flex border border-border bg-surface-2 p-1">
               {(['now', '1h', '2h'] as const).map((option) => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => setScheduleOption(option)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                    scheduleOption === option
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                    scheduleOption === option ? 'bg-surface text-text' : 'text-muted hover:bg-surface'
                   }`}
                 >
                   {option === 'now' ? 'Now' : option}
@@ -461,82 +452,71 @@ export default function ReservationTokenPage() {
             </div>
 
             <div className="mt-4 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeRequestPanel}
-                className="rounded-xl px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
-              >
+              <Button type="button" variant="outline" onClick={closeRequestPanel} className="px-3.5 py-2 text-sm">
                 Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSendRequest}
-                className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-3.5 py-2 text-sm font-medium text-white shadow-md shadow-indigo-500/20 transition hover:brightness-110"
-              >
+              </Button>
+              <Button type="button" onClick={handleSendRequest} className="px-3.5 py-2 text-sm">
                 Send request
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
-      {isValidRoomLink && <section>
-        <h2 className="text-sm font-medium uppercase tracking-wide text-slate-500">Your requests</h2>
+      {isValidRoomLink && (
+        <section>
+          <h2 className="text-sm font-medium uppercase tracking-wide text-muted">My requests</h2>
 
-        {sortedRequests.length === 0 ? (
-          <p className="mt-3 rounded-2xl bg-white/70 px-4 py-3 text-sm text-slate-500 ring-1 ring-white/60 backdrop-blur-md">
-            No requests yet for this room.
-          </p>
-        ) : (
-          <ul className="mt-3 space-y-2.5">
-            {sortedRequests.map((request) => (
-              <li
-                key={request.id}
-                className="rounded-2xl bg-white/75 px-4 py-3 shadow-sm ring-1 ring-white/60 backdrop-blur-md"
-              >
-                <Link href={`/r/${token}/requests/${request.id}`} className="block">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{formatRequestType(request.type)}</p>
-                      <p className="mt-0.5 text-xs text-slate-500">{formatRelativeTime(request.createdAt)}</p>
-                      {request.scheduledFor && (
-                        <p className="mt-0.5 text-xs text-slate-500">
-                          Scheduled {formatRelativeTime(request.scheduledFor)}
-                        </p>
-                      )}
-                    </div>
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${getStatusBadgeClassName(request.status)}`}
-                    >
-                      {formatStatusLabel(request.status)}
-                    </span>
-                  </div>
-                  {request.note && <p className="mt-2 text-xs text-slate-500">Note: {request.note}</p>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>}
+          {sortedRequests.length === 0 ? (
+            <Card className="mt-3 text-sm text-muted">No requests yet for this room.</Card>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {sortedRequests.map((request) => {
+                const requestTheme = getRequestStatusTheme(request.status);
+
+                return (
+                  <li key={request.id} className={`border-l-4 px-4 py-3 ${requestTheme.rowBg} ${requestTheme.rowBorder}`}>
+                    <Link href={`/r/${token}/requests/${request.id}`} className="block">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-text">{formatRequestType(request.type)}</p>
+                          <p className="mt-0.5 text-xs text-muted">{formatRelativeTime(request.createdAt)}</p>
+                          {request.scheduledFor && (
+                            <p className="mt-0.5 text-xs text-muted">Scheduled {formatRelativeTime(request.scheduledFor)}</p>
+                          )}
+                        </div>
+                        <Badge className={`${requestTheme.badgeBg} ${requestTheme.badgeText} ${requestTheme.badgeRing}`}>
+                          {formatStatusLabel(request.status)}
+                        </Badge>
+                      </div>
+                      {request.note && <p className="mt-2 text-xs text-muted">Note: {request.note}</p>}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      )}
 
       <section>
-        <h2 className="text-sm font-medium uppercase tracking-wide text-slate-500">FAQ</h2>
+        <h2 className="text-sm font-medium uppercase tracking-wide text-muted">FAQ</h2>
         <div className="mt-3 space-y-2">
           {FAQ_ITEMS.map((item, index) => {
             const isOpen = openFaqIndex === index;
 
             return (
-              <div key={item.question} className="rounded-xl bg-white/70 ring-1 ring-white/60 backdrop-blur-md">
+              <Card key={item.question} className="p-0">
                 <button
                   type="button"
                   onClick={() => setOpenFaqIndex(isOpen ? null : index)}
                   className="flex w-full items-center justify-between px-4 py-3 text-left"
                 >
-                  <span className="text-sm font-medium text-slate-900">{item.question}</span>
-                  <span className="text-slate-500">{isOpen ? '−' : '+'}</span>
+                  <span className="text-sm font-medium text-text">{item.question}</span>
+                  <span className="text-muted">{isOpen ? '−' : '+'}</span>
                 </button>
-                {isOpen && <p className="px-4 pb-3 text-sm text-slate-600">{item.answer}</p>}
-              </div>
+                {isOpen && <p className="px-4 pb-3 text-sm text-muted">{item.answer}</p>}
+              </Card>
             );
           })}
         </div>

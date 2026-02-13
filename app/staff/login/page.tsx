@@ -1,8 +1,10 @@
 export default function StaffLoginPage() {
   return (
-    <section>
-      <h1 className="text-2xl font-semibold">Staff Login</h1>
-      <p className="mt-2 text-sm text-slate-600">Placeholder for staff login screen.</p>
+    <section className="space-y-4">
+      <h1 className="text-2xl font-semibold text-text">Staff Login</h1>
+      <div className="card-base">
+        <p className="text-sm text-muted">Placeholder for staff login screen.</p>
+      </div>
     </section>
   );
 }

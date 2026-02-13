@@ -1,12 +1,13 @@
 'use client';
 
-import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import BackButton from '@/components/BackButton';
 import {
   getRoomByToken,
   getServiceById,
   incrementServiceView,
+  normalizeRoomToken,
   type ServiceItem,
 } from '@/lib/requests';
 
@@ -27,7 +28,7 @@ export default function GuestServiceDetailPage() {
   const router = useRouter();
   const params = useParams<{ token: string; serviceId: string }>();
 
-  const token = params?.token ?? '';
+  const token = normalizeRoomToken(params?.token ?? '');
   const serviceId = params?.serviceId ?? '';
 
   const [roomNumber, setRoomNumber] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export default function GuestServiceDetailPage() {
     const room = getRoomByToken(token);
 
     setService(foundService);
-    setRoomNumber(room?.roomNumber ?? null);
+    setRoomNumber((room?.roomNumber ?? token) || null);
     setSelectedSlot('');
     setHasTrackedView(false);
   }, [serviceId, token]);
@@ -88,14 +89,9 @@ export default function GuestServiceDetailPage() {
   if (!roomNumber) {
     return (
       <section className="space-y-4">
-        <Link
-          href={`/r/${token}/services`}
-          className="inline-flex rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
-        >
-          Back
-        </Link>
-        <div className="rounded-2xl bg-white/75 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-          <p className="text-sm text-slate-600">Invalid room link.</p>
+        <BackButton />
+        <div className="form-container shadow-warm">
+          <p className="text-sm text-muted">Invalid room link.</p>
         </div>
       </section>
     );
@@ -104,14 +100,9 @@ export default function GuestServiceDetailPage() {
   if (!service) {
     return (
       <section className="space-y-4">
-        <Link
-          href={`/r/${token}/services`}
-          className="inline-flex rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
-        >
-          Back
-        </Link>
-        <div className="rounded-2xl bg-white/75 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-          <p className="text-sm text-slate-600">Service not found. Please return to the services list.</p>
+        <BackButton />
+        <div className="form-container shadow-warm">
+          <p className="text-sm text-muted">Service not found. Please return to the services list.</p>
         </div>
       </section>
     );
@@ -120,28 +111,23 @@ export default function GuestServiceDetailPage() {
   return (
     <section className="space-y-6 pb-24">
       <header className="flex items-center gap-3">
-        <Link
-          href={`/r/${token}/services`}
-          className="rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
-        >
-          Back
-        </Link>
-        <h1 className="text-3xl font-semibold text-slate-900">{service.name}</h1>
+        <BackButton />
+        <h1 className="text-3xl font-semibold text-text">{service.name}</h1>
       </header>
 
-      <section className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-        <p className="text-sm text-slate-500">
+      <section className="form-container shadow-warm">
+        <p className="text-sm text-muted">
           {service.description ?? 'Service details and availability tailored for your stay.'}
         </p>
 
         <div className="mt-4">
-          <p className="text-xs uppercase tracking-wide text-slate-400">Price</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{service.priceText}</p>
+          <p className="text-xs uppercase tracking-wide text-muted">Price</p>
+          <p className="mt-1 text-lg font-semibold text-text">{service.priceText}</p>
         </div>
 
         {hasSlots && (
           <div className="mt-5">
-            <p className="text-xs uppercase tracking-wide text-slate-400">Available slots</p>
+            <p className="text-xs uppercase tracking-wide text-muted">Available slots</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {service.availability?.map((slot) => {
                 const isSelected = selectedSlot === slot;
@@ -151,10 +137,10 @@ export default function GuestServiceDetailPage() {
                     key={slot}
                     type="button"
                     onClick={() => setSelectedSlot(slot)}
-                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                    className={`rounded-none px-3 py-1.5 text-sm font-medium transition-colors ${
                       isSelected
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'
+                        ? 'tabs-trigger tabs-trigger-active'
+                        : 'tabs-trigger'
                     }`}
                   >
                     {formatSlotLabel(slot)}
@@ -168,20 +154,20 @@ export default function GuestServiceDetailPage() {
         {details.length > 0 && (
           <div className="mt-5 space-y-2">
             {details.map((detail) => (
-              <p key={detail.label} className="text-sm text-slate-600">
-                <span className="font-medium text-slate-800">{detail.label}:</span> {detail.value}
+              <p key={detail.label} className="text-sm text-muted">
+                <span className="font-medium text-text">{detail.label}:</span> {detail.value}
               </p>
             ))}
           </div>
         )}
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/40 bg-white/75 p-4 backdrop-blur md:static md:border-none md:bg-transparent md:p-0">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface-2 p-4 md:static md:border-none md:bg-transparent md:p-0">
         <button
           type="button"
           onClick={handleGoToRequest}
           disabled={!canSubmit}
-          className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-sm font-medium text-white shadow-md shadow-indigo-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-primary w-full py-3"
         >
           {service.actionLabel}
         </button>

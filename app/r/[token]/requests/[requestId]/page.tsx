@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import BackButton from '@/components/BackButton';
 import {
   formatRelativeTime,
   formatRequestType,
@@ -10,6 +10,7 @@ import {
   getRequestById,
   getRoomByToken,
   getStatusBadgeClassName,
+  normalizeRoomToken,
   updateRequestStatus,
   type GuestRequest,
 } from '@/lib/requests';
@@ -30,14 +31,15 @@ function formatDateTime(value: string): string {
 
 export default function GuestRequestDetailsPage() {
   const params = useParams<{ token: string; requestId: string }>();
-  const token = params?.token ?? '';
+  const token = normalizeRoomToken(params?.token ?? '');
   const requestId = params?.requestId ?? '';
 
   const [roomNumber, setRoomNumber] = useState<string | null>(null);
   const [request, setRequest] = useState<GuestRequest | null>(null);
 
   useEffect(() => {
-    setRoomNumber(getRoomByToken(token)?.roomNumber ?? null);
+    const room = getRoomByToken(token);
+    setRoomNumber((room?.roomNumber ?? token) || null);
     setRequest(getRequestById(requestId) ?? null);
   }, [token, requestId]);
 
@@ -96,30 +98,20 @@ export default function GuestRequestDetailsPage() {
   if (!roomNumber) {
     return (
       <section className="space-y-4">
-        <Link
-          href={`/r/${token}`}
-          className="inline-flex rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
-        >
-          Back
-        </Link>
-        <div className="rounded-2xl bg-white/75 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-          <p className="text-sm text-slate-600">Invalid room link.</p>
+        <BackButton />
+        <div className="form-container shadow-warm">
+          <p className="text-sm text-muted">Invalid room link.</p>
         </div>
       </section>
     );
   }
 
-  if (!request || request.roomToken !== token) {
+  if (!request || (request.roomToken !== token && request.roomNumber !== roomNumber)) {
     return (
       <section className="space-y-4">
-        <Link
-          href={`/r/${token}`}
-          className="inline-flex rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
-        >
-          Back
-        </Link>
-        <div className="rounded-2xl bg-white/75 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-          <p className="text-sm text-slate-600">Request not found.</p>
+        <BackButton />
+        <div className="form-container shadow-warm">
+          <p className="text-sm text-muted">Request not found.</p>
         </div>
       </section>
     );
@@ -128,38 +120,33 @@ export default function GuestRequestDetailsPage() {
   return (
     <section className="space-y-6">
       <header className="flex items-center gap-3">
-        <Link
-          href={`/r/${token}`}
-          className="rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
-        >
-          Back
-        </Link>
-        <h1 className="text-2xl font-semibold text-slate-900">Request #{shortId}</h1>
+        <BackButton />
+        <h1 className="text-2xl font-semibold text-text">Request #{shortId}</h1>
       </header>
 
-      <section className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-        <p className="text-xs uppercase tracking-wide text-slate-400">Type</p>
-        <p className="mt-1 text-sm font-medium text-slate-900">{formatRequestType(request.type)}</p>
+      <section className="form-container shadow-warm">
+        <p className="text-xs uppercase tracking-wide text-muted">Type</p>
+        <p className="mt-1 text-sm font-medium text-text">{formatRequestType(request.type)}</p>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span
-            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${getStatusBadgeClassName(request.status)}`}
+            className={`inline-flex rounded-none px-2.5 py-1 text-xs font-medium ring-1 ${getStatusBadgeClassName(request.status)}`}
           >
             {formatStatusLabel(request.status)}
           </span>
           {request.scheduledFor && (
-            <span className="text-xs text-slate-600">ETA {formatRelativeTime(request.scheduledFor)}</span>
+            <span className="text-xs text-muted">ETA {formatRelativeTime(request.scheduledFor)}</span>
           )}
         </div>
       </section>
 
-      <section className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-slate-500">Timeline</h2>
+      <section className="form-container shadow-warm">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-muted">Timeline</h2>
         <ul className="mt-3 space-y-2">
           {timeline.map((item) => (
             <li key={item.key} className="flex items-start justify-between gap-2 text-sm">
-              <span className="font-medium text-slate-800">{item.label}</span>
-              <span className="text-slate-500">{item.at ? formatDateTime(item.at) : '—'}</span>
+              <span className="font-medium text-text">{item.label}</span>
+              <span className="text-muted">{item.at ? formatDateTime(item.at) : '—'}</span>
             </li>
           ))}
         </ul>
@@ -170,7 +157,7 @@ export default function GuestRequestDetailsPage() {
           <button
             type="button"
             onClick={handleCancelRequest}
-            className="rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-50"
+            className="btn-secondary px-4 py-2.5 text-sm"
           >
             Cancel request
           </button>
@@ -180,7 +167,7 @@ export default function GuestRequestDetailsPage() {
           <button
             type="button"
             onClick={handleRateExperience}
-            className="rounded-xl bg-indigo-50 px-4 py-2.5 text-sm font-medium text-indigo-700 ring-1 ring-indigo-200 transition hover:bg-indigo-100"
+            className="btn-primary px-4 py-2.5 text-sm"
           >
             Rate experience
           </button>

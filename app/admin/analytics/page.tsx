@@ -52,37 +52,37 @@ export default function AdminAnalyticsPage() {
   return (
     <section className="space-y-8">
       <header>
-        <h1 className="text-3xl font-semibold text-slate-900">Admin analytics</h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <h1 className="text-3xl font-semibold text-text">Admin analytics</h1>
+        <p className="mt-2 text-sm text-muted">
           Lightweight operational analytics computed from localStorage only.
         </p>
       </header>
 
-      <section className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-        <h2 className="text-base font-semibold text-slate-900">Top requested</h2>
-        <p className="mt-1 text-xs text-slate-500">Top 5 request types by request count.</p>
+      <section className="form-container shadow-warm">
+        <h2 className="text-base font-semibold text-text">Top requested</h2>
+        <p className="mt-1 text-xs text-muted">Top 5 request types by request count.</p>
 
         {topRequested.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">No requests yet.</p>
+          <p className="mt-3 text-sm text-muted">No requests yet.</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {topRequested.map((item) => (
-              <li key={item.type} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
-                <span className="text-sm text-slate-800">{item.type}</span>
-                <span className="text-sm font-semibold text-slate-900">{item.count}</span>
+              <li key={item.type} className="flex items-center justify-between rounded-none bg-surface px-3 py-2 border border-border">
+                <span className="text-sm text-muted">{item.type}</span>
+                <span className="text-sm font-semibold text-text">{item.count}</span>
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      <section className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-        <h2 className="text-base font-semibold text-slate-900">Conversion</h2>
-        <p className="mt-1 text-xs text-slate-500">Views, requests, and conversion per service.</p>
+      <section className="form-container shadow-warm">
+        <h2 className="text-base font-semibold text-text">Conversion</h2>
+        <p className="mt-1 text-xs text-muted">Views, requests, and conversion per service.</p>
 
         <div className="mt-3 overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-surface-2 text-left text-xs uppercase tracking-wide text-muted">
               <tr>
                 <th className="px-3 py-2">Service</th>
                 <th className="px-3 py-2">Views</th>
@@ -90,13 +90,13 @@ export default function AdminAnalyticsPage() {
                 <th className="px-3 py-2">Conversion</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {conversionRows.map((row) => (
                 <tr key={row.id}>
-                  <td className="px-3 py-2 text-slate-800">{row.name}</td>
-                  <td className="px-3 py-2 text-slate-700">{row.views}</td>
-                  <td className="px-3 py-2 text-slate-700">{row.requests}</td>
-                  <td className="px-3 py-2 font-medium text-slate-900">{row.conversion}</td>
+                  <td className="px-3 py-2 text-muted">{row.name}</td>
+                  <td className="px-3 py-2 text-muted">{row.views}</td>
+                  <td className="px-3 py-2 text-muted">{row.requests}</td>
+                  <td className="px-3 py-2 font-medium text-text">{row.conversion}</td>
                 </tr>
               ))}
             </tbody>
@@ -104,18 +104,18 @@ export default function AdminAnalyticsPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-        <h2 className="text-base font-semibold text-slate-900">Unused services</h2>
-        <p className="mt-1 text-xs text-slate-500">Services with fewer than {UNUSED_THRESHOLD} views.</p>
+      <section className="form-container shadow-warm">
+        <h2 className="text-base font-semibold text-text">Unused services</h2>
+        <p className="mt-1 text-xs text-muted">Services with fewer than {UNUSED_THRESHOLD} views.</p>
 
         {unusedServices.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">No unused services based on current threshold.</p>
+          <p className="mt-3 text-sm text-muted">No unused services based on current threshold.</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {unusedServices.map((service) => (
-              <li key={service.id} className="rounded-lg bg-slate-50 px-3 py-2">
-                <p className="text-sm font-medium text-slate-900">{service.name}</p>
-                <p className="mt-0.5 text-xs text-slate-600">
+              <li key={service.id} className="rounded-none border border-border bg-surface px-3 py-2">
+                <p className="text-sm font-medium text-text">{service.name}</p>
+                <p className="mt-0.5 text-xs text-muted">
                   {service.views} views. Consider hiding, improving description, or A/B testing.
                 </p>
               </li>

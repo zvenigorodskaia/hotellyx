@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { createRequest, getRoomByToken } from '@/lib/requests';
+import BackButton from '@/components/BackButton';
+import { createRequest, getRoomByToken, normalizeRoomToken } from '@/lib/requests';
 
 function toDateAndTime(iso: string): { date: string; time: string } {
   const parsed = new Date(iso);
@@ -41,11 +41,12 @@ export default function GuestRequestFormPage() {
   const params = useParams<{ token: string }>();
   const searchParams = useSearchParams();
 
-  const token = params?.token ?? '';
+  const token = normalizeRoomToken(params?.token ?? '');
   const type = searchParams.get('type') ?? 'General request';
   const slot = searchParams.get('slot') ?? '';
 
   const [roomNumber, setRoomNumber] = useState<string | null>(null);
+  const [resolvedRoomToken, setResolvedRoomToken] = useState('');
   const [when, setWhen] = useState<'asap' | 'schedule'>('asap');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -54,7 +55,8 @@ export default function GuestRequestFormPage() {
 
   useEffect(() => {
     const room = getRoomByToken(token);
-    setRoomNumber(room?.roomNumber ?? null);
+    setRoomNumber((room?.roomNumber ?? token) || null);
+    setResolvedRoomToken(room?.token ?? token);
 
     if (slot) {
       const parsed = toDateAndTime(slot);
@@ -91,13 +93,13 @@ export default function GuestRequestFormPage() {
   }, [roomNumber, when, date, time]);
 
   function handleSubmit() {
-    if (!roomNumber) {
+    if (!roomNumber || !resolvedRoomToken) {
       return;
     }
 
     const scheduledFor = when === 'schedule' ? toIso(date, time) : undefined;
 
-    createRequest(token, type, {
+    createRequest(resolvedRoomToken, type, {
       note,
       scheduledFor,
       roomNumber,
@@ -109,36 +111,31 @@ export default function GuestRequestFormPage() {
   return (
     <section className="space-y-6 pb-24">
       {showSentToast && (
-        <div className="animate-toast fixed right-4 top-4 z-50 w-[min(92vw,20rem)] rounded-2xl bg-white/95 px-4 py-3 text-sm text-slate-700 shadow-2xl ring-1 ring-slate-200 backdrop-blur">
-          <p className="font-medium text-slate-900">Request sent</p>
+        <div className="animate-toast fixed right-4 top-4 z-50 w-[min(92vw,20rem)] form-container text-sm text-muted shadow-warm">
+          <p className="font-medium text-text">Request sent</p>
         </div>
       )}
 
       <header className="flex items-center gap-3">
-        <Link
-          href={`/r/${token}`}
-          className="rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
-        >
-          Back
-        </Link>
-        <h1 className="text-2xl font-semibold text-slate-900">Request: {type}</h1>
+        <BackButton />
+        <h1 className="text-2xl font-semibold text-text">Request: {type}</h1>
       </header>
 
       {!roomNumber ? (
-        <section className="rounded-2xl bg-white/75 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
-          <p className="text-sm text-slate-600">Invalid room link.</p>
+        <section className="form-container shadow-warm">
+          <p className="text-sm text-muted">Invalid room link.</p>
         </section>
       ) : (
-        <section className="space-y-5 rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-white/70 backdrop-blur-md">
+        <section className="form-container space-y-5 shadow-warm">
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Room</p>
-            <p className="mt-1 text-sm font-medium text-slate-800">{roomNumber}</p>
+            <p className="text-xs uppercase tracking-wide text-muted">Room</p>
+            <p className="mt-1 text-sm font-medium text-text">{roomNumber}</p>
           </div>
 
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">When?</p>
+            <p className="text-xs uppercase tracking-wide text-muted">When?</p>
             <div className="mt-2 space-y-2">
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2 text-sm text-muted">
                 <input
                   type="radio"
                   name="when"
@@ -147,7 +144,7 @@ export default function GuestRequestFormPage() {
                 />
                 ASAP
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2 text-sm text-muted">
                 <input
                   type="radio"
                   name="when"
@@ -164,20 +161,20 @@ export default function GuestRequestFormPage() {
                   type="date"
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
-                  className="rounded-xl bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-1 ring-slate-200 transition focus:ring-2 focus:ring-indigo-300"
+                  className="input-base"
                 />
                 <input
                   type="time"
                   value={time}
                   onChange={(event) => setTime(event.target.value)}
-                  className="rounded-xl bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-1 ring-slate-200 transition focus:ring-2 focus:ring-indigo-300"
+                  className="input-base"
                 />
               </div>
             )}
           </div>
 
           <div>
-            <label htmlFor="request-note" className="text-xs uppercase tracking-wide text-slate-400">
+            <label htmlFor="request-note" className="text-xs uppercase tracking-wide text-muted">
               Notes (optional)
             </label>
             <textarea
@@ -186,7 +183,7 @@ export default function GuestRequestFormPage() {
               onChange={(event) => setNote(event.target.value)}
               rows={4}
               placeholder="Add any details"
-              className="mt-2 w-full rounded-xl bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-1 ring-slate-200 transition focus:ring-2 focus:ring-indigo-300"
+              className="input-base mt-2"
             />
           </div>
 
@@ -195,14 +192,14 @@ export default function GuestRequestFormPage() {
               type="button"
               onClick={handleSubmit}
               disabled={!canSubmit}
-              className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-indigo-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-primary"
             >
               Submit request
             </button>
             <button
               type="button"
               onClick={() => router.push(`/r/${token}`)}
-              className="rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
+              className="btn-secondary"
             >
               Cancel
             </button>
