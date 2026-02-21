@@ -792,44 +792,44 @@ export const ROOM_STATUS_STYLES: Record<
   }
 > = {
   normal: {
-    bgClass: 'bg-surface',
-    textClass: 'text-text',
-    borderClass: 'border-border',
+    bgClass: 'bg-[#ffffff57]',
+    textClass: 'text-[#1a1a1a]',
+    borderClass: 'border-[rgba(255,255,255,0.55)]',
     ringClass: 'focus:ring-2 focus:ring-[color:rgba(122,0,0,0.18)]',
-    container: 'bg-surface text-text ring-border',
-    select: 'border-border bg-surface text-text',
-    badge: 'bg-surface text-text ring-border',
-    cardActive: 'bg-surface ring-border',
+    container: 'bg-[#ffffff57] text-[#1a1a1a] ring-[rgba(255,255,255,0.55)]',
+    select: 'border-[rgba(255,255,255,0.55)] bg-[#ffffff57] text-[#1a1a1a]',
+    badge: 'bg-[#ffffff57] text-[#1a1a1a] ring-[rgba(255,255,255,0.55)]',
+    cardActive: 'bg-[#ffffff57] ring-[rgba(255,255,255,0.55)]',
   },
   dnd: {
-    bgClass: 'bg-[#F4D6D6]',
-    textClass: 'text-[#7A0000]',
-    borderClass: 'border-[#B9A699]',
+    bgClass: 'bg-[#ff5f5f57]',
+    textClass: 'text-[#7A1F1F]',
+    borderClass: 'border-[#F7CCCC]',
     ringClass: 'focus:ring-2 focus:ring-[color:rgba(122,0,0,0.18)]',
-    container: 'bg-[#F4D6D6] text-[#7A0000] ring-[#B9A699]',
-    select: 'border-[#B9A699] bg-[#F4D6D6] text-[#7A0000]',
-    badge: 'bg-[#F4D6D6] text-[#7A0000] ring-[#B9A699]',
-    cardActive: 'bg-[#F4D6D6] ring-[#B9A699]',
+    container: 'bg-[#ff5f5f57] text-[#7A1F1F] ring-[#F7CCCC]',
+    select: 'border-[#F7CCCC] bg-[#ff5f5f57] text-[#7A1F1F]',
+    badge: 'bg-[#ff5f5f57] text-[#7A1F1F] ring-[#F7CCCC]',
+    cardActive: 'bg-[#ff5f5f57] ring-[#F7CCCC]',
   },
   please_clean: {
-    bgClass: 'bg-[#D6E4F4]',
-    textClass: 'text-[#1E3A5F]',
-    borderClass: 'border-[#B9A699]',
+    bgClass: 'bg-[#aed3ff7d]',
+    textClass: 'text-[#1D4ED8]',
+    borderClass: 'border-[#D4E2FF]',
     ringClass: 'focus:ring-2 focus:ring-[color:rgba(122,0,0,0.18)]',
-    container: 'bg-[#D6E4F4] text-[#1E3A5F] ring-[#B9A699]',
-    select: 'border-[#B9A699] bg-[#D6E4F4] text-[#1E3A5F]',
-    badge: 'bg-[#D6E4F4] text-[#1E3A5F] ring-[#B9A699]',
-    cardActive: 'bg-[#D6E4F4] ring-[#B9A699]',
+    container: 'bg-[#aed3ff7d] text-[#1D4ED8] ring-[#D4E2FF]',
+    select: 'border-[#D4E2FF] bg-[#aed3ff7d] text-[#1D4ED8]',
+    badge: 'bg-[#aed3ff7d] text-[#1D4ED8] ring-[#D4E2FF]',
+    cardActive: 'bg-[#aed3ff7d] ring-[#D4E2FF]',
   },
   maintenance_needed: {
-    bgClass: 'bg-[#E6C7B3]',
-    textClass: 'text-[#7A4A2F]',
-    borderClass: 'border-[#B9A699]',
+    bgClass: 'bg-[#ffdfb05c]',
+    textClass: 'text-[#9A3412]',
+    borderClass: 'border-[#FFE1C2]',
     ringClass: 'focus:ring-2 focus:ring-[color:rgba(122,0,0,0.18)]',
-    container: 'bg-[#E6C7B3] text-[#7A4A2F] ring-[#B9A699]',
-    select: 'border-[#B9A699] bg-[#E6C7B3] text-[#7A4A2F]',
-    badge: 'bg-[#E6C7B3] text-[#7A4A2F] ring-[#B9A699]',
-    cardActive: 'bg-[#E6C7B3] ring-[#B9A699]',
+    container: 'bg-[#ffdfb05c] text-[#9A3412] ring-[#FFE1C2]',
+    select: 'border-[#FFE1C2] bg-[#ffdfb05c] text-[#9A3412]',
+    badge: 'bg-[#ffdfb05c] text-[#9A3412] ring-[#FFE1C2]',
+    cardActive: 'bg-[#ffdfb05c] ring-[#FFE1C2]',
   },
 };
 
@@ -914,43 +914,43 @@ export const REQUEST_STATUS_STYLES: Record<
   }
 > = {
   new: {
-    rowBg: 'bg-[color:var(--status-new)] hover:bg-[color:rgba(180,205,220,0.45)]',
-    rowBorder: 'border-[#1E3A5F]',
-    badgeBg: 'bg-[color:var(--status-new)]',
-    badgeText: 'text-[#1E3A5F]',
-    badgeRing: 'ring-[#B9A699]',
-    accentText: 'text-[#1E3A5F]',
+    rowBg: 'bg-[rgba(161,132,227,0.14)] hover:bg-[rgba(161,132,227,0.2)]',
+    rowBorder: 'border-[#7A5AB8]',
+    badgeBg: 'bg-[rgba(161,132,227,0.2)]',
+    badgeText: 'text-[#7A5AB8]',
+    badgeRing: 'ring-[rgba(122,90,184,0.24)]',
+    accentText: 'text-[#7A5AB8]',
   },
   accepted: {
-    rowBg: 'bg-[color:var(--status-accepted)] hover:bg-[color:rgba(205,170,120,0.45)]',
-    rowBorder: 'border-[#7A4A2F]',
-    badgeBg: 'bg-[color:var(--status-accepted)]',
-    badgeText: 'text-[#7A4A2F]',
-    badgeRing: 'ring-[#B9A699]',
-    accentText: 'text-[#7A4A2F]',
+    rowBg: 'bg-[rgba(255,177,102,0.22)] hover:bg-[rgba(255,177,102,0.3)]',
+    rowBorder: 'border-[#B86517]',
+    badgeBg: 'bg-[rgba(255,177,102,0.28)]',
+    badgeText: 'text-[#B86517]',
+    badgeRing: 'ring-[rgba(184,101,23,0.22)]',
+    accentText: 'text-[#B86517]',
   },
   in_progress: {
-    rowBg: 'bg-[#DCCFC5] hover:bg-[#d0c0b5]',
-    rowBorder: 'border-[#574944]',
-    badgeBg: 'bg-[#DCCFC5]',
-    badgeText: 'text-[#574944]',
-    badgeRing: 'ring-[#B9A699]',
-    accentText: 'text-[#574944]',
+    rowBg: 'bg-[rgba(112,197,255,0.2)] hover:bg-[rgba(112,197,255,0.28)]',
+    rowBorder: 'border-[#2A8FCD]',
+    badgeBg: 'bg-[rgba(112,197,255,0.25)]',
+    badgeText: 'text-[#2A8FCD]',
+    badgeRing: 'ring-[rgba(42,143,205,0.22)]',
+    accentText: 'text-[#2A8FCD]',
   },
   done: {
-    rowBg: 'bg-[color:var(--status-done)] hover:bg-[color:rgba(160,190,150,0.45)]',
-    rowBorder: 'border-[#1F4D2E]',
-    badgeBg: 'bg-[color:var(--status-done)]',
-    badgeText: 'text-[#1F4D2E]',
-    badgeRing: 'ring-[#B9A699]',
-    accentText: 'text-[#1F4D2E]',
+    rowBg: 'bg-[rgba(146,209,146,0.22)] hover:bg-[rgba(146,209,146,0.3)]',
+    rowBorder: 'border-[#2E7D32]',
+    badgeBg: 'bg-[rgba(146,209,146,0.28)]',
+    badgeText: 'text-[#2E7D32]',
+    badgeRing: 'ring-[rgba(46,125,50,0.2)]',
+    accentText: 'text-[#2E7D32]',
   },
   cancelled: {
-    rowBg: 'bg-[color:var(--status-cancelled)] hover:bg-[color:rgba(160,60,50,0.22)]',
+    rowBg: 'bg-[rgba(160,60,50,0.16)] hover:bg-[rgba(160,60,50,0.24)]',
     rowBorder: 'border-[#7A0000]',
-    badgeBg: 'bg-[color:var(--status-cancelled)]',
+    badgeBg: 'bg-[rgba(160,60,50,0.2)]',
     badgeText: 'text-[#7A0000]',
-    badgeRing: 'ring-[#B9A699]',
+    badgeRing: 'ring-[rgba(122,0,0,0.14)]',
     accentText: 'text-[#7A0000]',
   },
   sla_risk: {
@@ -965,6 +965,50 @@ export const REQUEST_STATUS_STYLES: Record<
 
 export function getRequestStatusTheme(status: RequestVisualStatus) {
   return REQUEST_STATUS_STYLES[status];
+}
+
+export function getRequestTone(status: RequestStatus): {
+  titleColor: string;
+  badgeBg: string;
+  badgeText: string;
+} {
+  if (status === 'accepted') {
+    return {
+      titleColor: '#B86517',
+      badgeBg: 'rgba(255,177,102,0.28)',
+      badgeText: '#B86517',
+    };
+  }
+
+  if (status === 'in_progress') {
+    return {
+      titleColor: '#2A8FCD',
+      badgeBg: 'rgba(112,197,255,0.25)',
+      badgeText: '#2A8FCD',
+    };
+  }
+
+  if (status === 'done') {
+    return {
+      titleColor: '#2E7D32',
+      badgeBg: 'rgba(146,209,146,0.28)',
+      badgeText: '#2E7D32',
+    };
+  }
+
+  if (status === 'cancelled') {
+    return {
+      titleColor: '#7A0000',
+      badgeBg: 'rgba(160,60,50,0.2)',
+      badgeText: '#7A0000',
+    };
+  }
+
+  return {
+    titleColor: '#7A5AB8',
+    badgeBg: 'rgba(161,132,227,0.2)',
+    badgeText: '#7A5AB8',
+  };
 }
 
 export function getRequestById(requestId: string): GuestRequest | undefined {

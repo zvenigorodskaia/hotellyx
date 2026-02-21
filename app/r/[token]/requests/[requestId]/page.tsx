@@ -3,13 +3,14 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import BackButton from '@/components/BackButton';
+import Badge from '@/components/ui/Badge';
 import {
   formatRelativeTime,
   formatRequestType,
   formatStatusLabel,
   getRequestById,
+  getRequestTone,
   getRoomByToken,
-  getStatusBadgeClassName,
   normalizeRoomToken,
   updateRequestStatus,
   type GuestRequest,
@@ -121,19 +122,25 @@ export default function GuestRequestDetailsPage() {
     <section className="space-y-6">
       <header className="flex items-center gap-3">
         <BackButton />
-        <h1 className="text-2xl font-semibold text-text">Request #{shortId}</h1>
+        <h1 className="type-page-title">Request #{shortId}</h1>
       </header>
 
       <section className="form-container shadow-warm">
-        <p className="text-xs uppercase tracking-wide text-muted">Type</p>
-        <p className="mt-1 text-sm font-medium text-text">{formatRequestType(request.type)}</p>
+        <p className="type-kicker">Type</p>
+        <p className="mt-1 text-sm font-medium" style={{ color: getRequestTone(request.status).titleColor }}>
+          {formatRequestType(request.type)}
+        </p>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span
-            className={`inline-flex rounded-none px-2.5 py-1 text-xs font-medium ring-1 ${getStatusBadgeClassName(request.status)}`}
+          <Badge
+            className="ring-1 ring-border"
+            style={{
+              backgroundColor: getRequestTone(request.status).badgeBg,
+              color: getRequestTone(request.status).badgeText,
+            }}
           >
             {formatStatusLabel(request.status)}
-          </span>
+          </Badge>
           {request.scheduledFor && (
             <span className="text-xs text-muted">ETA {formatRelativeTime(request.scheduledFor)}</span>
           )}
@@ -141,7 +148,7 @@ export default function GuestRequestDetailsPage() {
       </section>
 
       <section className="form-container shadow-warm">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-muted">Timeline</h2>
+        <h2 className="type-kicker">Timeline</h2>
         <ul className="mt-3 space-y-2">
           {timeline.map((item) => (
             <li key={item.key} className="flex items-start justify-between gap-2 text-sm">

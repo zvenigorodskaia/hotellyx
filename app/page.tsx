@@ -107,13 +107,13 @@ export default function LandingPage() {
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 href="#cta"
-                className="inline-flex min-h-12 items-center justify-center rounded-[2px] bg-[rgb(103,20,14)] px-8 py-3 text-sm font-medium text-white no-underline transition-colors duration-200 hover:bg-[rgb(120,28,22)] hover:text-white hover:no-underline"
+                className="inline-flex min-h-8 items-center justify-center rounded-[2px] bg-[rgb(103,20,14)] px-8 py-3 text-sm font-medium text-white no-underline transition-colors duration-200 hover:bg-[rgb(120,28,22)] hover:text-white hover:no-underline"
               >
                 Book a demo
               </Link>
               <Link
                 href="#screens"
-                className="inline-flex min-h-12 items-center justify-center rounded-[2px] bg-[rgb(236,227,220)] px-8 py-3 text-sm font-medium text-[rgb(30,25,22)] no-underline transition-colors duration-200 hover:bg-[rgb(224,214,206)] hover:no-underline"
+                className="inline-flex min-h-8 items-center justify-center rounded-[2px] bg-[rgb(236,227,220)] px-8 py-3 text-sm font-medium text-[rgb(30,25,22)] no-underline transition-colors duration-200 hover:bg-[rgb(224,214,206)] hover:no-underline"
               >
                 See product screens
               </Link>
@@ -211,7 +211,7 @@ export default function LandingPage() {
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab)}
-                className={`min-h-11 px-5 py-2 text-sm font-medium transition-colors duration-200 ${
+                className={`min-h-8 px-5 py-2 text-sm font-medium transition-colors duration-200 ${
                   activeTab === tab
                     ? 'bg-[rgb(103,20,14)] text-white'
                     : 'bg-[rgb(236,227,220)] text-[rgb(30,25,22)] hover:bg-[rgb(224,214,206)]'
@@ -241,7 +241,7 @@ export default function LandingPage() {
 
           <Link
             href="#cta"
-            className="inline-flex min-h-12 items-center justify-center rounded-[2px] bg-[rgb(103,20,14)] px-8 py-3 text-sm font-medium text-white no-underline transition-colors duration-200 hover:bg-[rgb(120,28,22)] hover:text-white hover:no-underline"
+            className="inline-flex min-h-8 items-center justify-center rounded-[2px] bg-[rgb(103,20,14)] px-8 py-3 text-sm font-medium text-white no-underline transition-colors duration-200 hover:bg-[rgb(120,28,22)] hover:text-white hover:no-underline"
           >
             Book a demo
           </Link>
@@ -280,7 +280,7 @@ export default function LandingPage() {
             <h2 className="text-4xl leading-[1.2] text-[rgb(30,25,22)] md:text-5xl">Ready to modernize hotel operations?</h2>
             <Link
               href="mailto:demo@hotellyx.com?subject=Hotellyx%20Demo"
-              className="inline-flex min-h-12 items-center justify-center rounded-[2px] bg-[rgb(103,20,14)] px-8 py-3 text-sm font-medium text-white no-underline transition-colors duration-200 hover:bg-[rgb(120,28,22)] hover:text-white hover:no-underline"
+              className="inline-flex min-h-8 items-center justify-center rounded-[2px] bg-[rgb(103,20,14)] px-8 py-3 text-sm font-medium text-white no-underline transition-colors duration-200 hover:bg-[rgb(120,28,22)] hover:text-white hover:no-underline"
             >
               Book a demo
             </Link>

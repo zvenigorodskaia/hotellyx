@@ -51,7 +51,7 @@ export default function GuestServicesPage() {
       <header className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-4">
         <div className="flex items-center gap-3">
           <BackButton />
-          <h1 className="text-3xl font-semibold text-text">Services</h1>
+          <h1 className="type-page-title">Services</h1>
         </div>
 
         <input
@@ -104,8 +104,8 @@ export default function GuestServicesPage() {
                     href={`/r/${token}/services/${service.id}`}
                     className="block rounded-none border border-border bg-surface p-4 shadow-warm transition-colors hover:bg-surface-2"
                   >
-                    <p className="text-xs uppercase tracking-wide text-muted">{service.category}</p>
-                    <p className="mt-1 text-base font-semibold text-text">{service.name}</p>
+                    <p className="type-kicker">{service.category}</p>
+                    <p className="mt-1 type-card-title">{service.name}</p>
                     <p className="mt-1 text-sm text-muted">{service.priceText}</p>
 
                     <span className="btn-secondary mt-3 px-3 py-1.5 text-sm">

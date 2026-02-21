@@ -71,7 +71,7 @@ export default function StaffRoomDetailsPage() {
     <section className="space-y-6">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold text-text">Room {roomNumber ?? token}</h1>
+          <h1 className="type-page-title">Room {roomNumber ?? token}</h1>
           <p className="mt-1 text-xs text-muted">Token: {token}</p>
           <p className="mt-1">
             <span
@@ -102,7 +102,7 @@ export default function StaffRoomDetailsPage() {
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-1.5">
-                    <p className="text-sm font-semibold text-text">{formatRequestType(request.type)}</p>
+                    <p className="type-card-title">{formatRequestType(request.type)}</p>
                     <p className="text-xs text-muted">Created {formatRelativeTime(request.createdAt)}</p>
                     {request.note && <p className="text-xs text-muted">Guest note: {request.note}</p>}
                     {request.scheduledFor && (

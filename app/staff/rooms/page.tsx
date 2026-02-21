@@ -86,14 +86,14 @@ export default function StaffRoomsPage() {
     <section className="space-y-6">
       <header className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold text-text">Rooms</h1>
-          <p className="mt-2 text-sm text-muted">Create secure room links with QR access for guests.</p>
+          <h1 className="type-page-title">Rooms</h1>
+          <p className="mt-2 type-subtitle">Create secure room links with QR access for guests.</p>
         </div>
         <BackButton />
       </header>
 
       <section className="form-container shadow-warm">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-muted">Add room</h2>
+        <h2 className="type-kicker">Add room</h2>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <input
             type="text"
@@ -133,7 +133,7 @@ export default function StaffRoomsPage() {
               >
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
                   <div>
-                    <p className="text-lg font-semibold text-text">Room {room.roomNumber}</p>
+                    <p className="type-card-title">Room {room.roomNumber}</p>
                     <p className="mt-1">
                       <span
                         className={`inline-flex px-2 py-0.5 text-xs font-medium ring-1 ${getRoomStatusStyle(room.roomStatus).badge}`}
@@ -161,7 +161,7 @@ export default function StaffRoomsPage() {
                       </button>
                     </div>
 
-                    <p className="mt-3 text-xs uppercase tracking-wide text-muted">Guest URL</p>
+                    <p className="mt-3 type-kicker">Guest URL</p>
                     <p className="mt-1 break-all text-sm text-muted">{guestUrl}</p>
 
                     <div className="mt-3 flex flex-wrap gap-2">

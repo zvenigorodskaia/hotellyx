@@ -90,14 +90,14 @@ const adminLinks: HubLink[] = [
 function LinkSection({ title, links }: { title: string; links: HubLink[] }) {
   return (
     <section className="space-y-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{title}</h2>
+      <h2 className="type-kicker">{title}</h2>
       <ul className="space-y-2">
         {links.map((item) => (
           <li key={item.title}>
             {item.href ? (
               <Link href={item.href} className="block border border-border bg-surface p-4 transition-colors hover:bg-surface-2">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="text-base font-semibold text-text">{item.title}</p>
+                  <p className="type-card-title">{item.title}</p>
                   <span className="border border-border bg-surface px-2 py-0.5 text-xs text-muted">
                     {item.path}
                   </span>
@@ -107,7 +107,7 @@ function LinkSection({ title, links }: { title: string; links: HubLink[] }) {
             ) : (
               <div className="border border-dashed border-border bg-surface-2 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="text-base font-semibold text-text">{item.title}</p>
+                  <p className="type-card-title">{item.title}</p>
                   <span className="px-2 py-0.5 text-xs text-muted">{item.path}</span>
                 </div>
                 <p className="mt-1 text-sm text-muted">{item.hint}</p>
@@ -123,9 +123,9 @@ function LinkSection({ title, links }: { title: string; links: HubLink[] }) {
 export default function PagesHubPage() {
   return (
     <section className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-semibold text-text">Hotellyx pages</h1>
-        <p className="mt-2 text-sm text-muted">Internal navigation hub for all current product screens.</p>
+      <header className="space-y-3">
+        <h1 className="type-page-title">Hotellyx pages</h1>
+        <p className="type-subtitle">Internal navigation hub for all current product screens.</p>
       </header>
 
       <LinkSection title="Guest" links={guestLinks} />

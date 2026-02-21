@@ -50,16 +50,16 @@ export default function AdminAnalyticsPage() {
   const unusedServices = conversionRows.filter((row) => row.views < UNUSED_THRESHOLD);
 
   return (
-    <section className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-semibold text-text">Admin analytics</h1>
-        <p className="mt-2 text-sm text-muted">
+    <section className="space-y-10">
+      <header className="space-y-3">
+        <h1 className="type-page-title">Admin analytics</h1>
+        <p className="type-subtitle">
           Lightweight operational analytics computed from localStorage only.
         </p>
       </header>
 
-      <section className="form-container shadow-warm">
-        <h2 className="text-base font-semibold text-text">Top requested</h2>
+      <section className="form-container">
+        <h2 className="type-section-title">Top requested</h2>
         <p className="mt-1 text-xs text-muted">Top 5 request types by request count.</p>
 
         {topRequested.length === 0 ? (
@@ -69,20 +69,20 @@ export default function AdminAnalyticsPage() {
             {topRequested.map((item) => (
               <li key={item.type} className="flex items-center justify-between rounded-none bg-surface px-3 py-2 border border-border">
                 <span className="text-sm text-muted">{item.type}</span>
-                <span className="text-sm font-semibold text-text">{item.count}</span>
+                <span className="type-card-title">{item.count}</span>
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      <section className="form-container shadow-warm">
-        <h2 className="text-base font-semibold text-text">Conversion</h2>
+      <section className="form-container">
+        <h2 className="type-section-title">Conversion</h2>
         <p className="mt-1 text-xs text-muted">Views, requests, and conversion per service.</p>
 
         <div className="mt-3 overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-surface-2 text-left text-xs uppercase tracking-wide text-muted">
+          <table className="min-w-full border-separate text-sm [border-spacing:0_8px]">
+            <thead className="type-kicker text-left">
               <tr>
                 <th className="px-3 py-2">Service</th>
                 <th className="px-3 py-2">Views</th>
@@ -90,9 +90,9 @@ export default function AdminAnalyticsPage() {
                 <th className="px-3 py-2">Conversion</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody>
               {conversionRows.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} className="border border-border bg-surface">
                   <td className="px-3 py-2 text-muted">{row.name}</td>
                   <td className="px-3 py-2 text-muted">{row.views}</td>
                   <td className="px-3 py-2 text-muted">{row.requests}</td>
@@ -104,8 +104,8 @@ export default function AdminAnalyticsPage() {
         </div>
       </section>
 
-      <section className="form-container shadow-warm">
-        <h2 className="text-base font-semibold text-text">Unused services</h2>
+      <section className="form-container">
+        <h2 className="type-section-title">Unused services</h2>
         <p className="mt-1 text-xs text-muted">Services with fewer than {UNUSED_THRESHOLD} views.</p>
 
         {unusedServices.length === 0 ? (

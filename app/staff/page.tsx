@@ -5,13 +5,15 @@ import { useEffect, useMemo, useState } from 'react';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import { Input, Select, Textarea } from '@/components/ui/Field';
+import Dropdown from '@/components/ui/Dropdown';
+import { Input } from '@/components/ui/Field';
 import Tabs from '@/components/ui/Tabs';
 import {
   REQUEST_STATUS_STYLES,
   formatRelativeTime,
   formatRequestType,
   formatStatusLabel,
+  getRequestTone,
   getRequests,
   getRoomByToken,
   updateRequestDetails,
@@ -64,6 +66,7 @@ export default function StaffPage() {
   const [priority, setPriority] = useState<RequestPriority>('normal');
   const [etaMinutes, setEtaMinutes] = useState('');
   const [staffNote, setStaffNote] = useState('');
+  const [pendingStatus, setPendingStatus] = useState<RequestStatus | null>(null);
 
   useEffect(() => {
     setRequests(getRequests());
@@ -117,6 +120,7 @@ export default function StaffPage() {
 
   useEffect(() => {
     if (!selectedRequest) {
+      setPendingStatus(null);
       return;
     }
 
@@ -125,6 +129,7 @@ export default function StaffPage() {
     setPriority(selectedRequest.priority ?? 'normal');
     setEtaMinutes(selectedRequest.etaMinutes ? String(selectedRequest.etaMinutes) : '');
     setStaffNote(selectedRequest.staffNote ?? '');
+    setPendingStatus(selectedRequest.status);
   }, [selectedRequest]);
 
   useEffect(() => {
@@ -154,23 +159,24 @@ export default function StaffPage() {
       return;
     }
 
-    const updated = updateRequestDetails(selectedRequest.id, {
+    let updated = updateRequestDetails(selectedRequest.id, {
       assignedTeam: team,
       assignedPerson: person,
       priority,
       etaMinutes: etaMinutes ? Number(etaMinutes) : undefined,
       staffNote,
     });
+
+    if (pendingStatus && pendingStatus !== selectedRequest.status) {
+      updated = updateRequestStatus(selectedRequest.id, pendingStatus);
+    }
+
     persistAndRefresh(updated);
+    setSelectedRequestId(null);
   }
 
   function handleStatusChange(nextStatus: RequestStatus) {
-    if (!selectedRequest) {
-      return;
-    }
-
-    const updated = updateRequestStatus(selectedRequest.id, nextStatus);
-    persistAndRefresh(updated);
+    setPendingStatus(nextStatus);
   }
 
   function getShortNote(request: GuestRequest): string {
@@ -187,11 +193,11 @@ export default function StaffPage() {
   }
 
   return (
-    <section className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-text">Staff Dashboard</h1>
-        <p className="mt-2 text-sm text-muted">Operational control panel for active requests.</p>
-        <Link href="/staff/rooms" className="btn-secondary mt-3 px-3 py-1.5 text-sm">
+    <section className="space-y-8">
+      <header className="space-y-3">
+        <h1 className="type-page-title">Staff Dashboard</h1>
+        <p className="type-subtitle">Operational control panel for active requests.</p>
+        <Link href="/staff/rooms" className="btn-secondary px-4 py-2 text-sm">
           Open Rooms page
         </Link>
       </header>
@@ -209,10 +215,10 @@ export default function StaffPage() {
         {filteredRequests.length === 0 ? (
           <Card className="text-sm text-muted">No requests in this tab.</Card>
         ) : (
-          <div className="overflow-hidden border border-border bg-surface shadow-soft">
+          <div className="overflow-hidden border border-border bg-surface p-2 shadow-soft">
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-surface-2 text-left text-xs uppercase tracking-wide text-muted">
+              <table className="min-w-full border-separate text-sm [border-spacing:0_8px]">
+                <thead className="type-kicker text-left">
                   <tr>
                     <th className="px-3 py-2">Room</th>
                     <th className="px-3 py-2">Type</th>
@@ -222,7 +228,7 @@ export default function StaffPage() {
                     <th className="px-3 py-2">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody>
                   {filteredRequests.map((request) => {
                     const isSelected = selectedRequestId === request.id;
                     const note = getShortNote(request);
@@ -230,20 +236,31 @@ export default function StaffPage() {
                       activeTab === 'sla_risk'
                         ? REQUEST_STATUS_STYLES.sla_risk
                         : REQUEST_STATUS_STYLES[request.status];
+                    const tone = getRequestTone(request.status);
+                    const typeColor = activeTab === 'sla_risk' ? undefined : tone.titleColor;
+                    const badgeStyle =
+                      activeTab === 'sla_risk'
+                        ? undefined
+                        : { backgroundColor: tone.badgeBg, color: tone.badgeText };
 
                     return (
                       <tr
                         key={request.id}
                         onClick={() => setSelectedRequestId(request.id)}
-                        className={`cursor-pointer border-l-4 ${statusTheme.rowBg} ${statusTheme.rowBorder} ${
-                          isSelected ? 'ring-1 ring-inset ring-focus' : ''
+                        className={`cursor-pointer border ${statusTheme.rowBg} ${statusTheme.rowBorder} ${
+                          isSelected ? 'ring-1 ring-inset ring-focus' : 'shadow-soft'
                         }`}
                       >
                         <td className="px-3 py-2 font-medium text-text">{getRoomDisplay(request)}</td>
-                        <td className="px-3 py-2 text-text">{formatRequestType(request.type)}</td>
+                        <td className={`px-3 py-2 font-medium ${activeTab === 'sla_risk' ? statusTheme.accentText : ''}`} style={typeColor ? { color: typeColor } : undefined}>
+                          {formatRequestType(request.type)}
+                        </td>
                         <td className="px-3 py-2 text-muted">{formatRelativeTime(request.createdAt)}</td>
                         <td className="px-3 py-2">
-                          <Badge className={`${statusTheme.badgeBg} ${statusTheme.badgeText} ${statusTheme.badgeRing}`}>
+                          <Badge
+                            className={`${statusTheme.badgeRing} ${activeTab === 'sla_risk' ? `${statusTheme.badgeBg} ${statusTheme.badgeText}` : ''}`}
+                            style={badgeStyle}
+                          >
                             {activeTab === 'sla_risk' ? 'SLA risk' : formatStatusLabel(request.status)}
                           </Badge>
                         </td>
@@ -275,7 +292,7 @@ export default function StaffPage() {
 
       {selectedRequest && (
         <div
-          className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/35 p-0 sm:items-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-stretch justify-center bg-[rgba(26,20,16,0.16)] p-0 sm:items-center sm:p-4"
           onClick={() => setSelectedRequestId(null)}
         >
           <Card
@@ -285,7 +302,7 @@ export default function StaffPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm font-semibold uppercase tracking-wide text-muted">Request details</p>
+              <p className="type-kicker">Request details</p>
               <Button
                 type="button"
                 variant="ghost"
@@ -298,103 +315,147 @@ export default function StaffPage() {
             </div>
 
             <div className="space-y-4">
+              {(() => {
+                const draftStatus = pendingStatus ?? selectedRequest.status;
+                const draftTone = getRequestTone(draftStatus);
+                return (
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="text-lg font-semibold text-text">
+                  <p className="type-card-title" style={{ color: draftTone.titleColor }}>
                     {formatRequestType(selectedRequest.type)} - Room {getRoomDisplay(selectedRequest)}
                   </p>
                   <p className="mt-1 text-xs text-muted">Created {formatRelativeTime(selectedRequest.createdAt)}</p>
                 </div>
                 <Badge
-                  className={`${REQUEST_STATUS_STYLES[selectedRequest.status].badgeBg} ${REQUEST_STATUS_STYLES[selectedRequest.status].badgeText} ${REQUEST_STATUS_STYLES[selectedRequest.status].badgeRing}`}
+                  className={`${REQUEST_STATUS_STYLES[draftStatus].badgeRing}`}
+                  style={{
+                    backgroundColor: draftTone.badgeBg,
+                    color: draftTone.badgeText,
+                  }}
                 >
-                  {formatStatusLabel(selectedRequest.status)}
+                  {formatStatusLabel(draftStatus)}
                 </Badge>
               </div>
+                );
+              })()}
 
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted">Guest note</p>
+                <p className="type-kicker">Guest note</p>
                 <Card className="mt-1 px-3 py-2 text-sm text-text">{selectedRequest.note?.trim() || '-'}</Card>
               </div>
 
               <div className="grid grid-cols-1 gap-3">
-                <label className="text-xs font-medium text-muted">
-                  Team
-                  <Select value={team} onChange={(event) => setTeam(event.target.value)} className="mt-1 py-2">
-                    <option value="">Unassigned</option>
-                    {TEAM_OPTIONS.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </Select>
-                </label>
-
-                <label className="text-xs font-medium text-muted">
-                  Person
-                  <Select value={person} onChange={(event) => setPerson(event.target.value)} className="mt-1 py-2">
-                    <option value="">Unassigned</option>
-                    {PERSON_OPTIONS.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </Select>
-                </label>
-
-                <label className="text-xs font-medium text-muted">
-                  Priority
-                  <Select
-                    value={priority}
-                    onChange={(event) => setPriority(event.target.value as RequestPriority)}
-                    className="mt-1 py-2"
-                  >
-                    <option value="low">Low</option>
-                    <option value="normal">Normal</option>
-                    <option value="high">High</option>
-                  </Select>
-                </label>
-
-                <label className="text-xs font-medium text-muted">
-                  ETA (minutes)
-                  <Input
-                    type="number"
-                    min={1}
-                    value={etaMinutes}
-                    onChange={(event) => setEtaMinutes(event.target.value)}
-                    className="mt-1 py-2"
+                <div className="text-xs font-medium text-muted">
+                  <span className="block">Team</span>
+                  <Dropdown
+                    value={team}
+                    onChange={setTeam}
+                    className="mt-2"
+                    options={[
+                      { value: '', label: 'Unassigned' },
+                      ...TEAM_OPTIONS.map((value) => ({ value, label: value })),
+                    ]}
                   />
-                </label>
+                </div>
 
-                <label className="text-xs font-medium text-muted">
-                  Internal staff note
-                  <Textarea
+                <div className="text-xs font-medium text-muted">
+                  <span className="block">Person</span>
+                  <Dropdown
+                    value={person}
+                    onChange={setPerson}
+                    className="mt-2"
+                    options={[
+                      { value: '', label: 'Unassigned' },
+                      ...PERSON_OPTIONS.map((value) => ({ value, label: value })),
+                    ]}
+                  />
+                </div>
+
+                <div className="text-xs font-medium text-muted">
+                  <span className="block">Priority</span>
+                  <Dropdown
+                    value={priority}
+                    onChange={(value) => setPriority(value as RequestPriority)}
+                    className="mt-2"
+                    options={[
+                      { value: 'low', label: 'Low' },
+                      { value: 'normal', label: 'Normal' },
+                      { value: 'high', label: 'High' },
+                    ]}
+                  />
+                </div>
+
+                <div className="text-xs font-medium text-muted">
+                  <label htmlFor="staff-eta-minutes" className="block">
+                    ETA (minutes)
+                  </label>
+                  <input
+                    id="staff-eta-minutes"
+                    name="staffEtaMinutes"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={etaMinutes}
+                    onChange={(event) => {
+                      const numericOnly = event.target.value.replace(/\D+/g, '');
+                      setEtaMinutes(numericOnly);
+                    }}
+                    className="mt-2 block w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-[rgb(103,20,14)]"
+                  />
+                </div>
+
+                <div className="text-xs font-medium text-muted">
+                  <label htmlFor="staff-internal-note" className="block">
+                    Internal staff note
+                  </label>
+                  <textarea
+                    id="staff-internal-note"
+                    name="staffInternalNote"
                     rows={3}
                     value={staffNote}
                     onChange={(event) => setStaffNote(event.target.value)}
-                    className="mt-1 py-2"
+                    className="mt-2 block w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-[rgb(103,20,14)]"
                   />
-                </label>
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" onClick={() => handleStatusChange('accepted')} className="px-3 py-1.5 text-xs">
-                  Accept
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleStatusChange('in_progress')}
-                  className="px-3 py-1.5 text-xs"
-                >
-                  Mark in progress
-                </Button>
-                <Button type="button" variant="outline" onClick={() => handleStatusChange('done')} className="px-3 py-1.5 text-xs">
-                  Mark done
-                </Button>
-                <Button type="button" onClick={handleSaveDetails} className="px-3 py-1.5 text-xs">
-                  Save updates
-                </Button>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div className="grid w-full grid-cols-3 gap-2 sm:w-auto sm:min-w-[25rem]">
+                  <Button
+                    type="button"
+                    onClick={() => handleStatusChange('accepted')}
+                    className={`w-full border border-[rgba(184,101,23,0.35)] px-3 py-1.5 text-xs text-[#B86517] hover:bg-[rgba(255,177,102,0.4)] hover:text-[#B86517] ${
+                      pendingStatus === 'accepted' ? 'bg-[rgba(255,177,102,0.4)]' : 'bg-[rgba(255,177,102,0.28)]'
+                    }`}
+                  >
+                    Accept
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => handleStatusChange('in_progress')}
+                    className={`w-full border border-[rgba(42,143,205,0.35)] px-3 py-1.5 text-xs text-[#2A8FCD] hover:bg-[rgba(112,197,255,0.4)] hover:text-[#2A8FCD] ${
+                      pendingStatus === 'in_progress' ? 'bg-[rgba(112,197,255,0.4)]' : 'bg-[rgba(112,197,255,0.25)]'
+                    }`}
+                  >
+                    Mark in progress
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => handleStatusChange('done')}
+                    className={`w-full border border-[rgba(46,125,50,0.35)] px-3 py-1.5 text-xs text-[#2E7D32] hover:bg-[rgba(146,209,146,0.4)] hover:text-[#2E7D32] ${
+                      pendingStatus === 'done' ? 'bg-[rgba(146,209,146,0.4)]' : 'bg-[rgba(146,209,146,0.28)]'
+                    }`}
+                  >
+                    Mark done
+                  </Button>
+                </div>
+
+                <div className="ml-auto space-y-1 text-right">
+                  <p className="text-xs text-muted">After saving, the status will be sent to the guest immediately.</p>
+                  <Button type="button" onClick={handleSaveDetails} className="px-3 py-1.5 text-xs">
+                    Save updates
+                  </Button>
+                </div>
               </div>
             </div>
           </Card>

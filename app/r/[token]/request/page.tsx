@@ -3,6 +3,7 @@
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import BackButton from '@/components/BackButton';
+import { Textarea } from '@/components/ui/Field';
 import { createRequest, getRoomByToken, normalizeRoomToken } from '@/lib/requests';
 
 function toDateAndTime(iso: string): { date: string; time: string } {
@@ -118,7 +119,7 @@ export default function GuestRequestFormPage() {
 
       <header className="flex items-center gap-3">
         <BackButton />
-        <h1 className="text-2xl font-semibold text-text">Request: {type}</h1>
+        <h1 className="type-page-title">Request: {type}</h1>
       </header>
 
       {!roomNumber ? (
@@ -128,12 +129,12 @@ export default function GuestRequestFormPage() {
       ) : (
         <section className="form-container space-y-5 shadow-warm">
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted">Room</p>
+            <p className="type-kicker">Room</p>
             <p className="mt-1 text-sm font-medium text-text">{roomNumber}</p>
           </div>
 
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted">When?</p>
+            <p className="type-kicker">When?</p>
             <div className="mt-2 space-y-2">
               <label className="flex items-center gap-2 text-sm text-muted">
                 <input
@@ -174,16 +175,16 @@ export default function GuestRequestFormPage() {
           </div>
 
           <div>
-            <label htmlFor="request-note" className="text-xs uppercase tracking-wide text-muted">
+            <label htmlFor="request-note" className="type-kicker">
               Notes (optional)
             </label>
-            <textarea
+            <Textarea
               id="request-note"
               value={note}
               onChange={(event) => setNote(event.target.value)}
               rows={4}
               placeholder="Add any details"
-              className="input-base mt-2"
+              className="mt-2 w-full"
             />
           </div>
 

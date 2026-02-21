@@ -36,13 +36,13 @@ export default function AppChrome({ children }: AppChromeProps) {
               </Link>
             </nav>
 
-            <Link href="#cta" className="inline-flex min-h-12 items-center justify-center rounded-[2px] bg-[rgb(103,20,14)] px-5 py-3 text-sm font-medium text-white no-underline transition-colors hover:bg-[rgb(120,28,22)] hover:no-underline">
+            <Link href="#cta" className="inline-flex min-h-8 items-center justify-center rounded-[2px] bg-[rgb(103,20,14)] px-5 py-3 text-sm font-medium text-white no-underline transition-colors hover:bg-[rgb(120,28,22)] hover:no-underline">
               Book a demo
             </Link>
           </div>
         </header>
       ) : (
-        <header className="border-b border-[var(--border)] bg-[var(--surface)]">
+        <header className="border-b border-[var(--border)] bg-[var(--bg-main)]">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-5 sm:px-6">
             <Link
               href="/pages"
@@ -50,7 +50,7 @@ export default function AppChrome({ children }: AppChromeProps) {
             >
               Hotellyx
             </Link>
-            <Link href="/pages" className="text-sm text-muted transition-colors hover:text-text">
+            <Link href="/pages" className="text-sm text-[rgb(120,30,25)] transition-colors hover:text-[rgb(103,20,14)]">
               Product pages
             </Link>
           </div>

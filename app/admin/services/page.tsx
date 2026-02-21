@@ -157,9 +157,9 @@ export default function AdminServicesPage() {
   }
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-8">
       <header className="flex items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold text-text">Services catalog</h1>
+        <h1 className="type-page-title">Services catalog</h1>
         <button
           type="button"
           onClick={openCreateModal}
@@ -169,10 +169,10 @@ export default function AdminServicesPage() {
         </button>
       </header>
 
-      <section className="overflow-hidden rounded-none border border-border bg-surface shadow-warm">
+      <section className="form-container p-0">
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-surface-2 text-left text-xs uppercase tracking-wide text-muted">
+          <table className="min-w-full border-separate text-sm [border-spacing:0_8px]">
+            <thead className="type-kicker text-left">
               <tr>
                 <th className="px-3 py-3">Name</th>
                 <th className="px-3 py-3">Category</th>
@@ -181,9 +181,9 @@ export default function AdminServicesPage() {
                 <th className="px-3 py-3">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody>
               {sortedServices.map((service) => (
-                <tr key={service.id}>
+                <tr key={service.id} className="border border-border bg-surface">
                   <td className="px-3 py-3 font-medium text-text">{service.name}</td>
                   <td className="px-3 py-3 text-muted">{service.category}</td>
                   <td className="px-3 py-3 text-muted">{service.priceText}</td>
@@ -193,8 +193,8 @@ export default function AdminServicesPage() {
                       onClick={() => handleActiveToggle(service.id)}
                       className={`rounded-none px-2.5 py-1 text-xs font-medium ring-1 transition ${
                         service.active
-                          ? 'bg-surface-2 text-text ring-border'
-                          : 'bg-[color:rgba(219,206,197,0.55)] text-muted ring-border'
+                          ? 'bg-[rgba(103,20,14,0.08)] text-[rgb(103,20,14)] ring-[rgba(103,20,14,0.2)]'
+                          : 'bg-[rgba(0,0,0,0.04)] text-muted ring-border'
                       }`}
                     >
                       {service.active ? 'Active' : 'Disabled'}
@@ -218,16 +218,16 @@ export default function AdminServicesPage() {
 
       {showModal && (
         <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 px-4"
+          className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(26,20,16,0.16)] px-4"
           onClick={closeModal}
         >
           <div
             role="dialog"
             aria-modal="true"
-            className="form-container w-full max-w-lg p-5 shadow-warm"
+            className="form-container w-full max-w-lg p-8"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 className="text-lg font-semibold text-text">
+            <h2 className="type-section-title">
               {editingServiceId ? 'Edit service' : 'Add service'}
             </h2>
 

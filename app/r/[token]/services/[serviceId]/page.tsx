@@ -112,7 +112,7 @@ export default function GuestServiceDetailPage() {
     <section className="space-y-6 pb-24">
       <header className="flex items-center gap-3">
         <BackButton />
-        <h1 className="text-3xl font-semibold text-text">{service.name}</h1>
+        <h1 className="type-page-title">{service.name}</h1>
       </header>
 
       <section className="form-container shadow-warm">
@@ -121,13 +121,13 @@ export default function GuestServiceDetailPage() {
         </p>
 
         <div className="mt-4">
-          <p className="text-xs uppercase tracking-wide text-muted">Price</p>
-          <p className="mt-1 text-lg font-semibold text-text">{service.priceText}</p>
+          <p className="type-kicker">Price</p>
+          <p className="mt-1 type-card-title">{service.priceText}</p>
         </div>
 
         {hasSlots && (
           <div className="mt-5">
-            <p className="text-xs uppercase tracking-wide text-muted">Available slots</p>
+            <p className="type-kicker">Available slots</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {service.availability?.map((slot) => {
                 const isSelected = selectedSlot === slot;
