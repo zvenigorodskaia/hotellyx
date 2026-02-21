@@ -25,11 +25,11 @@ import {
 
 type StaffTab = 'all' | 'new' | 'accepted' | 'in_progress' | 'done' | 'sla_risk';
 
-const SLA_MINUTES = 30;
+const SLA_MINUTES = 25;
 const TEAM_OPTIONS = ['Front Desk', 'Housekeeping', 'Maintenance', 'Room Service'];
 const PERSON_OPTIONS = ['Alex', 'Sam', 'Jordan', 'Taylor'];
 
-const TAB_OPTIONS: Array<{ id: StaffTab; label: string }> = [
+const TAB_OPTIONS_BASE: Array<{ id: StaffTab; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'new', label: 'New' },
   { id: 'accepted', label: 'Accepted' },
@@ -38,17 +38,147 @@ const TAB_OPTIONS: Array<{ id: StaffTab; label: string }> = [
   { id: 'sla_risk', label: 'SLA risk' },
 ];
 
+function toMs(value?: string): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+export function isActive(status: RequestStatus): boolean {
+  return status !== 'done';
+}
+
+export function minutesBetween(a: string, b: string): number | null {
+  const start = toMs(a);
+  const end = toMs(b);
+  if (start === null || end === null || end < start) {
+    return null;
+  }
+
+  return (end - start) / 60000;
+}
+
+export function formatDuration(minutes: number | null): string {
+  if (minutes === null || !Number.isFinite(minutes)) {
+    return '-';
+  }
+
+  const rounded = Math.round(minutes);
+  if (rounded < 60) {
+    return `${rounded}m`;
+  }
+
+  const hours = Math.floor(rounded / 60);
+  const mins = rounded % 60;
+  return mins === 0 ? `${hours}h` : `${hours}h ${mins}m`;
+}
+
+export function withinLastHours(date: string, hours: number, nowMs = Date.now()): boolean {
+  const valueMs = toMs(date);
+  if (valueMs === null) {
+    return false;
+  }
+
+  const rangeMs = hours * 60 * 60 * 1000;
+  return valueMs >= nowMs - rangeMs && valueMs <= nowMs;
+}
+
+function withinRange(date: string, startMs: number, endMs: number): boolean {
+  const valueMs = toMs(date);
+  if (valueMs === null) {
+    return false;
+  }
+
+  return valueMs >= startMs && valueMs <= endMs;
+}
+
+function average(values: number[]): number | null {
+  if (!values.length) {
+    return null;
+  }
+
+  const sum = values.reduce((acc, value) => acc + value, 0);
+  return sum / values.length;
+}
+
+function averageTransitionMinutes(
+  requests: GuestRequest[],
+  toField: 'acceptedAt' | 'doneAt',
+  startMs: number,
+  endMs: number,
+): number | null {
+  const values = requests
+    .filter((request) => {
+      const endpoint = request[toField];
+      if (!endpoint) {
+        return false;
+      }
+
+      return withinRange(endpoint, startMs, endMs);
+    })
+    .map((request) => {
+      const endpoint = request[toField];
+      if (!endpoint) {
+        return null;
+      }
+
+      return minutesBetween(request.createdAt, endpoint);
+    })
+    .filter((value): value is number => typeof value === 'number');
+
+  return average(values);
+}
+
+function formatTrend(current: number | null, previous: number | null): string | null {
+  if (current === null || previous === null || previous === 0) {
+    return null;
+  }
+
+  const delta = ((current - previous) / previous) * 100;
+  const rounded = Math.round(delta);
+  const fixed = rounded === 0 ? 0 : rounded;
+
+  return `${fixed > 0 ? '+' : ''}${fixed}%`;
+}
+
+function isRequestActiveAt(request: GuestRequest, atMs: number): boolean {
+  const createdAtMs = toMs(request.createdAt);
+  if (createdAtMs === null || createdAtMs > atMs) {
+    return false;
+  }
+
+  const doneAtMs = toMs(request.doneAt);
+  if (doneAtMs !== null && doneAtMs <= atMs) {
+    return false;
+  }
+
+  const cancelledAtMs = toMs(request.cancelledAt);
+  if (cancelledAtMs !== null && cancelledAtMs <= atMs) {
+    return false;
+  }
+
+  return true;
+}
+
+// Option B: request is in SLA risk when still active and older than threshold.
+function isSlaRiskAt(request: GuestRequest, atMs: number): boolean {
+  if (!isRequestActiveAt(request, atMs)) {
+    return false;
+  }
+
+  const createdAtMs = toMs(request.createdAt);
+  if (createdAtMs === null) {
+    return false;
+  }
+
+  return atMs - createdAtMs > SLA_MINUTES * 60 * 1000;
+}
+
 function isSlaRisk(request: GuestRequest): boolean {
-  if (request.status === 'done' || request.status === 'cancelled') {
-    return false;
-  }
-
-  const createdAtMs = new Date(request.createdAt).getTime();
-  if (Number.isNaN(createdAtMs)) {
-    return false;
-  }
-
-  return Date.now() - createdAtMs > SLA_MINUTES * 60 * 1000;
+  return isSlaRiskAt(request, Date.now());
 }
 
 function getRoomDisplay(request: GuestRequest): string {
@@ -117,6 +247,95 @@ export default function StaffPage() {
 
     return requests.find((request) => request.id === selectedRequestId) ?? null;
   }, [selectedRequestId, requests]);
+
+  const tabOptions = useMemo(() => {
+    const slaRiskCount = requests.filter((request) => isSlaRisk(request)).length;
+    return TAB_OPTIONS_BASE.map((item) =>
+      item.id === 'sla_risk' ? { ...item, label: `SLA risk (${slaRiskCount})` } : item,
+    );
+  }, [requests]);
+
+  const liveOverview = useMemo(() => {
+    const nowMs = Date.now();
+    const hourMs = 60 * 60 * 1000;
+    const dayMs = 24 * hourMs;
+
+    const previousHourPoint = nowMs - hourMs;
+    const last24Start = nowMs - dayMs;
+    const previous24Start = nowMs - 2 * dayMs;
+
+    const activeRequests = requests.filter((request) => isActive(request.status)).length;
+    const previousActiveRequests = requests.filter((request) =>
+      isRequestActiveAt(request, previousHourPoint),
+    ).length;
+
+    const slaRisk = requests.filter((request) => isSlaRiskAt(request, nowMs)).length;
+    const previousSlaRisk = requests.filter((request) => isSlaRiskAt(request, previousHourPoint)).length;
+
+    const avgResponseCurrent = averageTransitionMinutes(requests, 'acceptedAt', last24Start, nowMs);
+    const avgResponsePrevious = averageTransitionMinutes(
+      requests,
+      'acceptedAt',
+      previous24Start,
+      last24Start,
+    );
+
+    const avgCompletionCurrent = averageTransitionMinutes(requests, 'doneAt', last24Start, nowMs);
+    const avgCompletionPrevious = averageTransitionMinutes(
+      requests,
+      'doneAt',
+      previous24Start,
+      last24Start,
+    );
+
+    const requestsPerHour = requests.filter((request) => withinLastHours(request.createdAt, 1, nowMs)).length;
+    const previousRequestsPerHour = requests.filter((request) =>
+      withinRange(request.createdAt, nowMs - 2 * hourMs, nowMs - hourMs),
+    ).length;
+
+    return [
+      {
+        id: 'active',
+        label: 'Active requests',
+        value: String(activeRequests),
+        helper: 'Live queue',
+        trend: formatTrend(activeRequests, previousActiveRequests),
+        toneClass: 'bg-[var(--surface)]',
+      },
+      {
+        id: 'sla_risk',
+        label: 'SLA risk',
+        value: String(slaRisk),
+        helper: 'Older than 25 min',
+        trend: formatTrend(slaRisk, previousSlaRisk),
+        toneClass: 'bg-[#ff43312b]',
+      },
+      {
+        id: 'avg_response',
+        label: 'Avg response time',
+        value: formatDuration(avgResponseCurrent),
+        helper: 'Last 24h',
+        trend: formatTrend(avgResponseCurrent, avgResponsePrevious),
+        toneClass: 'bg-[rgba(255,177,102,0.22)]',
+      },
+      {
+        id: 'avg_completion',
+        label: 'Avg completion time',
+        value: formatDuration(avgCompletionCurrent),
+        helper: 'Last 24h',
+        trend: formatTrend(avgCompletionCurrent, avgCompletionPrevious),
+        toneClass: 'bg-[rgba(146,209,146,0.22)]',
+      },
+      {
+        id: 'per_hour',
+        label: 'Requests per hour',
+        value: String(requestsPerHour),
+        helper: 'Last 60 min',
+        trend: formatTrend(requestsPerHour, previousRequestsPerHour),
+        toneClass: 'bg-[var(--surface)]',
+      },
+    ];
+  }, [requests]);
 
   useEffect(() => {
     if (!selectedRequest) {
@@ -202,7 +421,26 @@ export default function StaffPage() {
         </Link>
       </header>
 
-      <Tabs value={activeTab} onChange={setActiveTab} items={TAB_OPTIONS} />
+      <section aria-label="Live overview" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="type-section-title text-[1.35rem]">Live overview</h2>
+          <p className="text-xs text-muted">Updated from current request queue</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          {liveOverview.map((metric) => (
+            <Card key={metric.id} className={`space-y-2 p-4 ${metric.toneClass}`}>
+              <p className="type-kicker">{metric.label}</p>
+              <p className="text-2xl font-semibold text-text">{metric.value}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-muted">{metric.helper}</p>
+                {metric.trend ? <p className="text-xs text-muted">{metric.trend}</p> : null}
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <Tabs value={activeTab} onChange={setActiveTab} items={tabOptions} />
 
       <section className="space-y-3">
         <Input
@@ -240,7 +478,7 @@ export default function StaffPage() {
                     const typeColor = activeTab === 'sla_risk' ? undefined : tone.titleColor;
                     const badgeStyle =
                       activeTab === 'sla_risk'
-                        ? undefined
+                        ? { color: '#7A0000', borderColor: '#7A0000' }
                         : { backgroundColor: tone.badgeBg, color: tone.badgeText };
 
                     return (
@@ -258,7 +496,11 @@ export default function StaffPage() {
                         <td className="px-3 py-2 text-muted">{formatRelativeTime(request.createdAt)}</td>
                         <td className="px-3 py-2">
                           <Badge
-                            className={`${statusTheme.badgeRing} ${activeTab === 'sla_risk' ? `${statusTheme.badgeBg} ${statusTheme.badgeText}` : ''}`}
+                            className={`${statusTheme.badgeRing} ${
+                              activeTab === 'sla_risk'
+                                ? `${statusTheme.badgeBg} ${statusTheme.badgeText}`
+                                : ''
+                            }`}
                             style={badgeStyle}
                           >
                             {activeTab === 'sla_risk' ? 'SLA risk' : formatStatusLabel(request.status)}

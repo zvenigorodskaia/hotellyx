@@ -954,12 +954,12 @@ export const REQUEST_STATUS_STYLES: Record<
     accentText: 'text-[#7A0000]',
   },
   sla_risk: {
-    rowBg: 'bg-[#F3E3C7] hover:bg-[#ead6b7]',
-    rowBorder: 'border-[#5A3A00]',
-    badgeBg: 'bg-[#F3E3C7]',
-    badgeText: 'text-[#5A3A00]',
-    badgeRing: 'ring-[#B9A699]',
-    accentText: 'text-[#5A3A00]',
+    rowBg: 'bg-[#ff43312b] hover:bg-[#ff43312b]',
+    rowBorder: 'border-[#7A0000]',
+    badgeBg: 'bg-[rgba(160,60,50,0.2)]',
+    badgeText: 'text-[#7A0000]',
+    badgeRing: 'ring-[rgba(122,0,0,0.14)]',
+    accentText: 'text-[#7A0000]',
   },
 };
 
